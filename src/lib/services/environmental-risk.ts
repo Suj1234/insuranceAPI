@@ -58,8 +58,13 @@ export async function getDistrictByPincode(pincode: string) {
 
 // ── District risk index lookup ────────────────────────────────────────────────
 
+// Strip spaces + lowercase so "Mumbai CITY" matches "MumbaiCity", "West Bengal" matches "WestBengal"
+function normName(s: string) {
+  return s.replace(/\s+/g, '').toLowerCase()
+}
+
 export async function getDistrictRiskIndex(districtName: string, stateName: string) {
-  const cacheKey = `district_risk:${districtName}:${stateName}`
+  const cacheKey = `district_risk:${normName(districtName)}:${normName(stateName)}`
   const cached = cacheGet(districtCache, cacheKey)
   if (cached !== null) return cached
 
@@ -68,8 +73,8 @@ export async function getDistrictRiskIndex(districtName: string, stateName: stri
     .from(districtRiskIndex)
     .where(
       and(
-        eq(districtRiskIndex.districtName, districtName),
-        eq(districtRiskIndex.stateName, stateName),
+        sql`LOWER(REPLACE(${districtRiskIndex.districtName}, ' ', '')) = ${normName(districtName)}`,
+        sql`LOWER(REPLACE(${districtRiskIndex.stateName}, ' ', '')) = ${normName(stateName)}`,
       )
     )
     .limit(1)
@@ -89,7 +94,7 @@ export async function getDistrictAQIHistory(
   toYear: number,
   toMonth: number,
 ) {
-  const cacheKey = `aqi_history:${districtName}:${stateName}:${fromYear}-${fromMonth}:${toYear}-${toMonth}`
+  const cacheKey = `aqi_history:${normName(districtName)}:${normName(stateName)}:${fromYear}-${fromMonth}:${toYear}-${toMonth}`
   const cached = cacheGet(aqiHistoryCache, cacheKey)
   if (cached !== null) return cached
 
@@ -98,8 +103,8 @@ export async function getDistrictAQIHistory(
     .from(districtAirQuality)
     .where(
       and(
-        eq(districtAirQuality.districtName, districtName),
-        eq(districtAirQuality.stateName, stateName),
+        sql`LOWER(REPLACE(${districtAirQuality.districtName}, ' ', '')) = ${normName(districtName)}`,
+        sql`LOWER(REPLACE(${districtAirQuality.stateName}, ' ', '')) = ${normName(stateName)}`,
         sql`(${districtAirQuality.year} * 100 + ${districtAirQuality.month}) >= ${fromYear * 100 + fromMonth}`,
         sql`(${districtAirQuality.year} * 100 + ${districtAirQuality.month}) <= ${toYear * 100 + toMonth}`,
       )
