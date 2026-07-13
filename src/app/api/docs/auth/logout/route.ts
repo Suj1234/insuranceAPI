@@ -1,0 +1,16 @@
+import { NextResponse } from 'next/server'
+
+export async function POST() {
+  const res = NextResponse.json({ success: true })
+  const cookieOpts = {
+    httpOnly: true,
+    secure:   process.env.NODE_ENV === 'production',
+    sameSite: 'lax' as const,
+    path:     '/docs',
+    maxAge:   0,
+  }
+  res.cookies.set('docs_session', '', cookieOpts)
+  res.cookies.set('docs_api_key', '', { ...cookieOpts, httpOnly: false })
+  res.cookies.set('docs_user_name', '', { ...cookieOpts, httpOnly: false })
+  return res
+}

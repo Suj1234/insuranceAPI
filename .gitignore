@@ -34,3 +34,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# large data files (rasters, raw downloads)
+data/cams/
+data/era5/
+data/sedac/
+scripts/__pycache__/
+scripts/load_log.txt
+scripts/qa_log.txt
