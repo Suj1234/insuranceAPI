@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { API_DEFINITIONS } from './_data/api-definitions'
 import type { ApiDefinition } from './_data/api-definitions'
@@ -307,18 +307,224 @@ function DocumentationTab({ api }: { api: ApiDefinition }) {
   )
 }
 
+// ─── Meta types & module-level cache ─────────────────────────────────────────
+
+type MetaData = {
+  aqiStates: string[]
+  aqiDistrictsByState: Record<string, string[]>
+  waterStates: string[]
+  hotspotStates: string[]
+}
+
+let _metaCache: { data: MetaData; ts: number } | null = null
+
+// ─── SearchableSelect ─────────────────────────────────────────────────────────
+
+function SearchableSelect({
+  options, value, onChange, placeholder = '— select —', disabled = false,
+}: {
+  options: string[]
+  value: string
+  onChange: (v: string) => void
+  placeholder?: string
+  disabled?: boolean
+}) {
+  const [open, setOpen] = useState(false)
+  const [query, setQuery] = useState('')
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function onDown(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', onDown)
+    return () => document.removeEventListener('mousedown', onDown)
+  }, [])
+
+  const filtered = options.filter(o => o.toLowerCase().includes(query.toLowerCase()))
+  function select(v: string) { onChange(v); setQuery(''); setOpen(false) }
+
+  return (
+    <div ref={containerRef} style={{ position: 'relative', width: '380px', maxWidth: '100%' }}>
+      <div
+        onClick={() => { if (!disabled) setOpen(o => !o) }}
+        style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '7px 10px', border: '1px solid #d1d5db', borderRadius: 5,
+          fontSize: '13px', color: value ? '#111827' : '#9ca3af',
+          background: disabled ? '#f3f4f6' : '#fff', cursor: disabled ? 'not-allowed' : 'pointer',
+          userSelect: 'none',
+        }}
+      >
+        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value || placeholder}</span>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2" style={{ flexShrink: 0, marginLeft: 6 }}>
+          <polyline points={open ? '18 15 12 9 6 15' : '6 9 12 15 18 9'} />
+        </svg>
+      </div>
+      {open && (
+        <div style={{
+          position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 200,
+          background: '#fff', border: '1px solid #d1d5db', borderRadius: 5,
+          boxShadow: '0 4px 16px rgba(0,0,0,0.12)', marginTop: 2, overflow: 'hidden',
+        }}>
+          <div style={{ padding: '6px 8px', borderBottom: '1px solid #f3f4f6' }}>
+            <input
+              autoFocus
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              placeholder="Search…"
+              style={{ width: '100%', padding: '5px 8px', border: '1px solid #e5e7eb', borderRadius: 4, fontSize: '12.5px', outline: 'none', boxSizing: 'border-box' }}
+            />
+          </div>
+          <div style={{ maxHeight: 200, overflowY: 'auto' }}>
+            {filtered.length === 0
+              ? <div style={{ padding: '10px 12px', fontSize: '12.5px', color: '#9ca3af' }}>No results</div>
+              : filtered.map(opt => (
+                <div
+                  key={opt}
+                  onMouseDown={() => select(opt)}
+                  style={{
+                    padding: '7px 12px', fontSize: '12.5px', cursor: 'pointer',
+                    color: opt === value ? '#1d4ed8' : '#374151',
+                    background: opt === value ? '#eff6ff' : 'transparent',
+                    fontWeight: opt === value ? 600 : 400,
+                  }}
+                >
+                  {opt}
+                </div>
+              ))}
+          </div>
+          {value && (
+            <div style={{ borderTop: '1px solid #f3f4f6', padding: '4px 8px' }}>
+              <button onMouseDown={() => select('')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '12px', color: '#6b7280', padding: '3px 4px' }}>
+                Clear
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+const POLLUTANT_OPTIONS = ['pm25', 'pm10', 'no2', 'so2', 'co', 'o3', 'aqi']
+
 // ─── Tryout Tab ───────────────────────────────────────────────────────────────
 
 function TryoutTab({ api, apiKey }: { api: ApiDefinition; apiKey: string }) {
   const queryParams = api.params.filter(p => p.in === 'query')
   const [values, setValues] = useState<Record<string, string>>(() => {
     const init: Record<string, string> = {}
-    for (const p of queryParams) init[p.name] = p.example !== undefined ? String(p.example) : ''
+    for (const p of queryParams) {
+      if (p.inputType === 'pollutant-select') { init[p.name] = 'pm25,aqi'; continue }
+      if (p.inputType === 'state-select' || p.inputType === 'district-select') { init[p.name] = ''; continue }
+      init[p.name] = p.example !== undefined ? String(p.example) : ''
+    }
     return init
   })
+  const [meta, setMeta] = useState<MetaData | null>(_metaCache?.data ?? null)
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<{ status: number; latency: number; body: string; headers: Record<string, string> } | null>(null)
   const [resTab, setResTab] = useState('Body')
+
+  useEffect(() => {
+    if (_metaCache && Date.now() - _metaCache.ts < 60 * 60 * 1000) {
+      setMeta(_metaCache.data); return
+    }
+    fetch('/api/environmental/meta')
+      .then(r => r.json())
+      .then(j => {
+        if (j.success) { _metaCache = { data: j.data, ts: Date.now() }; setMeta(j.data) }
+      })
+      .catch(() => {})
+  }, [])
+
+  function setVal(name: string, val: string) {
+    setValues(v => ({ ...v, [name]: val }))
+  }
+
+  function renderInput(p: typeof queryParams[number]) {
+    if (p.inputType === 'state-select') {
+      const options = p.metaKey === 'aqiStates' ? (meta?.aqiStates ?? [])
+        : p.metaKey === 'waterStates' ? (meta?.waterStates ?? [])
+        : p.metaKey === 'hotspotStates' ? (meta?.hotspotStates ?? [])
+        : []
+      const districtParam = queryParams.find(q => q.inputType === 'district-select' && q.cascadesFrom === p.name)
+      return (
+        <SearchableSelect
+          options={options}
+          value={values[p.name] ?? ''}
+          onChange={v => {
+            if (districtParam) setValues(prev => ({ ...prev, [p.name]: v, [districtParam.name]: '' }))
+            else setVal(p.name, v)
+          }}
+          placeholder={meta ? '— select state —' : 'Loading states…'}
+          disabled={!meta || options.length === 0}
+        />
+      )
+    }
+
+    if (p.inputType === 'district-select') {
+      const stateVal = p.cascadesFrom ? (values[p.cascadesFrom] ?? '') : ''
+      const options = stateVal ? (meta?.aqiDistrictsByState[stateVal] ?? []) : []
+      return (
+        <SearchableSelect
+          options={options}
+          value={values[p.name] ?? ''}
+          onChange={v => setVal(p.name, v)}
+          placeholder={!stateVal ? 'Select state first' : options.length ? '— select district —' : 'No districts found'}
+          disabled={!stateVal || options.length === 0}
+        />
+      )
+    }
+
+    if (p.inputType === 'month') {
+      return (
+        <input
+          type="month"
+          value={values[p.name] ?? ''}
+          onChange={e => setVal(p.name, e.target.value)}
+          style={{ width: '200px', padding: '7px 10px', border: '1px solid #d1d5db', borderRadius: 5, fontSize: '13px', color: '#111827', background: '#fff', outline: 'none' }}
+        />
+      )
+    }
+
+    if (p.inputType === 'pollutant-select') {
+      const selected = (values[p.name] ?? '').split(',').filter(Boolean)
+      return (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, paddingTop: 2 }}>
+          {POLLUTANT_OPTIONS.map(opt => {
+            const checked = selected.includes(opt)
+            return (
+              <label key={opt} style={{ display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer', fontSize: '12.5px', color: '#374151' }}>
+                <input type="checkbox" checked={checked} onChange={() => {
+                  const next = checked ? selected.filter(s => s !== opt) : [...selected, opt]
+                  setVal(p.name, next.join(','))
+                }} style={{ cursor: 'pointer' }} />
+                {opt.toUpperCase()}
+              </label>
+            )
+          })}
+        </div>
+      )
+    }
+
+    if (p.enum) {
+      return (
+        <select value={values[p.name] ?? ''} onChange={e => setVal(p.name, e.target.value)}
+          style={{ width: '380px', maxWidth: '100%', padding: '7px 10px', border: '1px solid #d1d5db', borderRadius: 5, fontSize: '13px', color: '#111827', background: '#fff', outline: 'none' }}>
+          <option value="">— select —</option>
+          {p.enum.map(v => <option key={v} value={v}>{v}</option>)}
+        </select>
+      )
+    }
+
+    return (
+      <input type="text" value={values[p.name] ?? ''} onChange={e => setVal(p.name, e.target.value)}
+        placeholder={p.example !== undefined ? String(p.example) : ''}
+        style={{ width: '380px', maxWidth: '100%', padding: '7px 10px', border: '1px solid #d1d5db', borderRadius: 5, fontSize: '13px', fontFamily: 'monospace', color: '#111827', background: '#f9fafb', outline: 'none' }} />
+    )
+  }
 
   async function handleSend() {
     setLoading(true); setResult(null)
@@ -357,17 +563,7 @@ function TryoutTab({ api, apiKey }: { api: ApiDefinition; apiKey: string }) {
                 <span>{p.name.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</span>
                 {p.required && <span style={{ color: '#dc2626', fontWeight: 700 }}>*</span>}
               </label>
-              {p.enum ? (
-                <select value={values[p.name] ?? ''} onChange={e => setValues(v => ({ ...v, [p.name]: e.target.value }))}
-                  style={{ width: '380px', maxWidth: '100%', padding: '7px 10px', border: '1px solid #d1d5db', borderRadius: 5, fontSize: '13px', color: '#111827', background: '#fff', outline: 'none' }}>
-                  <option value="">— select —</option>
-                  {p.enum.map(v => <option key={v} value={v}>{v}</option>)}
-                </select>
-              ) : (
-                <input type="text" value={values[p.name] ?? ''} onChange={e => setValues(v => ({ ...v, [p.name]: e.target.value }))}
-                  placeholder={p.example !== undefined ? String(p.example) : ''}
-                  style={{ width: '380px', maxWidth: '100%', padding: '7px 10px', border: '1px solid #d1d5db', borderRadius: 5, fontSize: '13px', fontFamily: 'monospace', color: '#111827', background: '#f9fafb', outline: 'none' }} />
-              )}
+              {renderInput(p)}
             </div>
           ))}
           <div style={{ paddingTop: 4 }}>
@@ -636,7 +832,7 @@ function ApiContentArea({ view, apiKey }: { view: ActiveView; apiKey: string }) 
 
       {docTab === 'Documentation'
         ? <DocumentationTab api={api} />
-        : <TryoutTab api={api} apiKey={apiKey} />}
+        : <TryoutTab key={api.id} api={api} apiKey={apiKey} />}
     </div>
   )
 }

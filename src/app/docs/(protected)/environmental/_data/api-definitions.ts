@@ -11,6 +11,9 @@ export interface Param {
   description: string
   example?: string | number | boolean
   enum?: string[]
+  inputType?: 'state-select' | 'district-select' | 'month' | 'pollutant-select'
+  metaKey?: 'aqiStates' | 'waterStates' | 'hotspotStates'
+  cascadesFrom?: string
 }
 
 export interface ResponseField {
@@ -143,20 +146,24 @@ export const API_DEFINITIONS: ApiDefinition[] = [
         example: 'env_abc123...',
       },
       {
-        name: 'district',
-        in: 'query',
-        required: true,
-        type: 'string',
-        description: 'District name (exact, case-insensitive).',
-        example: 'Mumbai City',
-      },
-      {
         name: 'state',
         in: 'query',
         required: true,
         type: 'string',
         description: 'State name.',
         example: 'Maharashtra',
+        inputType: 'state-select',
+        metaKey: 'aqiStates',
+      },
+      {
+        name: 'district',
+        in: 'query',
+        required: true,
+        type: 'string',
+        description: 'District name (case-insensitive, spaces optional).',
+        example: 'Mumbai City',
+        inputType: 'district-select',
+        cascadesFrom: 'state',
       },
       {
         name: 'from',
@@ -165,6 +172,7 @@ export const API_DEFINITIONS: ApiDefinition[] = [
         type: 'string',
         description: 'Start month in YYYY-MM format.',
         example: '2022-01',
+        inputType: 'month',
       },
       {
         name: 'to',
@@ -173,14 +181,16 @@ export const API_DEFINITIONS: ApiDefinition[] = [
         type: 'string',
         description: 'End month in YYYY-MM format. Maximum range: 60 months.',
         example: '2023-12',
+        inputType: 'month',
       },
       {
         name: 'pollutants',
         in: 'query',
         required: false,
         type: 'string',
-        description: 'Comma-separated list of pollutants to include. Defaults to "pm25,aqi".',
+        description: 'Pollutants to include. Defaults to pm25 and aqi.',
         example: 'pm25,aqi',
+        inputType: 'pollutant-select',
       },
     ],
     responseFields: [
@@ -253,6 +263,8 @@ export const API_DEFINITIONS: ApiDefinition[] = [
         type: 'string',
         description: 'State name. Common abbreviations accepted (UP, MP, TN, WB, AP, HP…). Either state or pincode is required.',
         example: 'Rajasthan',
+        inputType: 'state-select',
+        metaKey: 'waterStates',
       },
       {
         name: 'pincode',
@@ -348,6 +360,8 @@ export const API_DEFINITIONS: ApiDefinition[] = [
         type: 'string',
         description: 'State name. Common abbreviations accepted. Either state or pincode is required.',
         example: 'West Bengal',
+        inputType: 'state-select',
+        metaKey: 'hotspotStates',
       },
       {
         name: 'pincode',
