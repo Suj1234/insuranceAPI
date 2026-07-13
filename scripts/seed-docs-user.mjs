@@ -52,7 +52,7 @@ const { neon }            = await import('@neondatabase/serverless')
 
 const USER = {
   name:     'Sujeet Kumar',
-  email:    'sujeet.kr2496@gmail.com',
+  email:    'sujeet.kumar@perfios.com',
   password: 'Admin@1234',
   role:     'admin',
 }
