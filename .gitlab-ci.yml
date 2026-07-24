@@ -18,7 +18,7 @@ deploy-app:
   <<: *ssh_setup
   stage: deploy
   script:
-    - ssh -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST"
+    - ssh -tt -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST"
         'cd /opt/api-playground/app && git pull origin main && npm ci && npm run build && sudo systemctl restart api-playground'
   environment:
     name: production
@@ -29,7 +29,7 @@ deploy-raster:
   stage: deploy
   script:
     - scp -P "$DEPLOY_PORT" scripts/raster_service/main.py scripts/raster_service/requirements.txt "$DEPLOY_USER@$DEPLOY_HOST:/opt/api-playground/services/raster/"
-    - ssh -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST"
+    - ssh -tt -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST"
         '/opt/api-playground/services/raster/venv/bin/pip install -q -r /opt/api-playground/services/raster/requirements.txt && sudo systemctl restart merit-raster'
   environment:
     name: production
