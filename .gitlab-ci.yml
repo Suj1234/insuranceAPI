@@ -19,7 +19,7 @@ deploy-app:
   stage: deploy
   script:
     - ssh -tt -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST"
-        'cd /opt/api-playground/app && git pull origin main && npm ci && npm run build && cp -r .next/static .next/standalone/.next/static && cp -r public .next/standalone/public && sudo systemctl restart api-playground'
+        'cd /opt/api-playground/app && git pull origin main && npm ci && npm run build && cp -r .next/static .next/standalone/.next/static && sudo systemctl restart api-playground'
   environment:
     name: production
     url: http://172.17.4.105:3002
