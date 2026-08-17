@@ -1,0 +1,49 @@
+name: Deploy to server
+
+# Auto-deploy the app to the SSH server on every push to main.
+# Ported from the old GitLab pipeline. The server pulls from GitHub, builds,
+# and restarts the systemd service.
+#
+# Required GitHub repo secrets (Settings → Secrets and variables → Actions):
+#   SSH_PRIVATE_KEY  – private key whose public half is in the deploy user's
+#                      ~/.ssh/authorized_keys on the server
+#   DEPLOY_HOST      – server host/IP (e.g. 172.17.4.105)
+#   DEPLOY_PORT      – SSH port
+#   DEPLOY_USER      – SSH user
+#
+# NOTE: the server's git checkout at /opt/api-playground/app must have its
+# origin pointing at GitHub for `git pull origin main` to work. See
+# docs/deploy-github-actions.md.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}   # allow manual "Run workflow" from the Actions tab
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false   # never interrupt an in-flight deploy
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up SSH agent
+        run: |
+          eval "$(ssh-agent -s)"
+          echo "SSH_AUTH_SOCK=$SSH_AUTH_SOCK" >> "$GITHUB_ENV"
+          echo "SSH_AGENT_PID=$SSH_AGENT_PID" >> "$GITHUB_ENV"
+          printf '%s\n' "${{ secrets.SSH_PRIVATE_KEY }}" | tr -d '\r' | ssh-add -
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          ssh-keyscan -p "${{ secrets.DEPLOY_PORT }}" "${{ secrets.DEPLOY_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Deploy over SSH
+        run: |
+          ssh -tt -p "${{ secrets.DEPLOY_PORT }}" \
+            "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
+            'cd /opt/api-playground/app \
+              && git pull origin main \
+              && npm ci \
+              && npm run build \
+              && cp -r .next/static .next/standalone/.next/static \
+              && sudo systemctl restart api-playground'
