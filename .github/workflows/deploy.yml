@@ -1,49 +1,59 @@
-name: Deploy to server
+name: Build & Deploy
 
-# Auto-deploy the app to the SSH server on every push to main.
-# Ported from the old GitLab pipeline. The server pulls from GitHub, builds,
-# and restarts the systemd service.
+# Build the app image, push to Harbor, and run it on the server.
+# Runs on a SELF-HOSTED runner that lives ON the server (172.17.4.105), so there
+# is no SSH step — docker commands run locally on the box.
 #
 # Required GitHub repo secrets (Settings → Secrets and variables → Actions):
-#   SSH_PRIVATE_KEY  – private key whose public half is in the deploy user's
-#                      ~/.ssh/authorized_keys on the server
-#   DEPLOY_HOST      – server host/IP (e.g. 172.17.4.105)
-#   DEPLOY_PORT      – SSH port
-#   DEPLOY_USER      – SSH user
+#   HARBOR_USERNAME – Harbor login user
+#   HARBOR_PASSWORD – Harbor login password
 #
-# NOTE: the server's git checkout at /opt/api-playground/app must have its
-# origin pointing at GitHub for `git pull origin main` to work. See
-# docs/deploy-github-actions.md.
+# Prerequisites on the server:
+#   - a registered self-hosted GitHub Actions runner for THIS repo
+#   - /opt/api-playground/.env.production present (INTERNAL_ENV_API_KEY,
+#     DATABASE_URL, KARZA_KEY, KARZA_BASE_URL, NEXT_PUBLIC_APP_URL, …)
+# See docs/deploy-github-actions.md.
 
 on:
   push:
     branches: [main]
-  workflow_dispatch: {}   # allow manual "Run workflow" from the Actions tab
+  workflow_dispatch: {}
 
 concurrency:
   group: deploy-production
-  cancel-in-progress: false   # never interrupt an in-flight deploy
+  cancel-in-progress: false
 
 jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Set up SSH agent
-        run: |
-          eval "$(ssh-agent -s)"
-          echo "SSH_AUTH_SOCK=$SSH_AUTH_SOCK" >> "$GITHUB_ENV"
-          echo "SSH_AGENT_PID=$SSH_AGENT_PID" >> "$GITHUB_ENV"
-          printf '%s\n' "${{ secrets.SSH_PRIVATE_KEY }}" | tr -d '\r' | ssh-add -
-          mkdir -p ~/.ssh && chmod 700 ~/.ssh
-          ssh-keyscan -p "${{ secrets.DEPLOY_PORT }}" "${{ secrets.DEPLOY_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+  build-and-deploy:
+    runs-on: self-hosted
 
-      - name: Deploy over SSH
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Log in to Harbor
+        run: echo "${{ secrets.HARBOR_PASSWORD }}" | docker login harbor.hinagro.com -u "${{ secrets.HARBOR_USERNAME }}" --password-stdin
+
+      - name: Build Docker image
+        run: docker build -t api-playground:latest .
+
+      - name: Tag image for Harbor
+        run: docker tag api-playground:latest harbor.hinagro.com/insurance/api-playground:latest
+
+      - name: Push image to Harbor
+        run: docker push harbor.hinagro.com/insurance/api-playground:latest
+
+      - name: Stop and remove old container
         run: |
-          ssh -tt -p "${{ secrets.DEPLOY_PORT }}" \
-            "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
-            'cd /opt/api-playground/app \
-              && git pull origin main \
-              && npm ci \
-              && npm run build \
-              && cp -r .next/static .next/standalone/.next/static \
-              && sudo systemctl restart api-playground'
+          docker rm -f api-playground || true
+          # Free port 5011 in case an orphan/differently-named container holds it
+          docker ps -q --filter "publish=5011" | xargs -r docker rm -f
+
+      - name: Run new container
+        run: |
+          docker run -d \
+            --name api-playground \
+            --restart unless-stopped \
+            -p 5011:3000 \
+            --env-file /opt/api-playground/.env.production \
+            harbor.hinagro.com/insurance/api-playground:latest

@@ -1,0 +1,42 @@
+# Dependencies — reinstalled inside the image
+node_modules
+
+# Build output — produced fresh inside the image
+.next
+
+# Local environment files — NEVER bake secrets into the image
+.env.local
+.env*.local
+.env.production
+
+# Secrets / keys — must never enter the image
+gee-key.json
+*.pem
+*.key
+
+# Git
+.git
+.gitignore
+.github
+
+# Large data files & rasters — not needed in the image
+data/
+tmp-screenshots/
+
+# Logs
+*.log
+
+# Dev tooling / docs — not needed at runtime
+docs
+scripts
+drizzle
+"External API"
+*.md
+CLAUDE.md
+
+# IDE / OS
+.claude
+.vscode
+.idea
+*.DS_Store
+Thumbs.db
