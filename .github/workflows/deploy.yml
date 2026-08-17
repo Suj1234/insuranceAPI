@@ -1,18 +1,17 @@
 name: Build & Deploy
 
-# Build the app image, push to Harbor, and run it on the server.
-# Runs on a SELF-HOSTED runner that lives ON the server (172.17.4.105), so there
-# is no SSH step — docker commands run locally on the box.
+# Runs on a SELF-HOSTED runner that lives ON the server (inside the VPN), so it
+# can reach both harbor.hinagro.com and the local docker daemon. No SSH step —
+# docker commands run locally on the box.
 #
 # Required GitHub repo secrets (Settings → Secrets and variables → Actions):
 #   HARBOR_USERNAME – Harbor login user
 #   HARBOR_PASSWORD – Harbor login password
 #
-# Prerequisites on the server:
-#   - a registered self-hosted GitHub Actions runner for THIS repo
-#   - /opt/api-playground/.env.production present (INTERNAL_ENV_API_KEY,
-#     DATABASE_URL, KARZA_KEY, KARZA_BASE_URL, NEXT_PUBLIC_APP_URL, …)
-# See docs/deploy-github-actions.md.
+# Server prerequisites (one-time, see docs/deploy-github-actions.md):
+#   - a registered + running self-hosted runner for THIS repo
+#   - the runner user can run docker (in the `docker` group)
+#   - /opt/api-playground/.env.production exists
 
 on:
   push:
@@ -22,6 +21,9 @@ on:
 concurrency:
   group: deploy-production
   cancel-in-progress: false
+
+env:
+  IMAGE: harbor.hinagro.com/insurance/api-playground:latest
 
 jobs:
   build-and-deploy:
@@ -34,14 +36,11 @@ jobs:
       - name: Log in to Harbor
         run: echo "${{ secrets.HARBOR_PASSWORD }}" | docker login harbor.hinagro.com -u "${{ secrets.HARBOR_USERNAME }}" --password-stdin
 
-      - name: Build Docker image
-        run: docker build -t api-playground:latest .
-
-      - name: Tag image for Harbor
-        run: docker tag api-playground:latest harbor.hinagro.com/insurance/api-playground:latest
+      - name: Build image
+        run: docker build -t "$IMAGE" .
 
       - name: Push image to Harbor
-        run: docker push harbor.hinagro.com/insurance/api-playground:latest
+        run: docker push "$IMAGE"
 
       - name: Stop and remove old container
         run: |
@@ -56,4 +55,4 @@ jobs:
             --restart unless-stopped \
             -p 5011:3000 \
             --env-file /opt/api-playground/.env.production \
-            harbor.hinagro.com/insurance/api-playground:latest
+            "$IMAGE"
