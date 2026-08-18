@@ -23,6 +23,7 @@ const BodySchema = z.object({
   name:              z.string().optional(),
   address:           z.string().optional(),
   getContactDetails: z.enum(['Y', 'N']).optional(),
+  fatherName:        z.enum(['Y', 'N']).optional(),
   PANStatus:         z.enum(['Y', 'N']).optional(),
   isSalaried:        z.enum(['Y', 'N']).optional(),
   isDirector:        z.enum(['Y', 'N']).optional(),

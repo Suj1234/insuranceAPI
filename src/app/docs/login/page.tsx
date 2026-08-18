@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { Eye, EyeOff } from 'lucide-react'
 
 export default function DocsLogin() {
   const router = useRouter()
@@ -21,8 +22,11 @@ export default function DocsLogin() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: email.trim(), password }),
       })
-      const data = await res.json() as { success: boolean; error?: string }
-      if (!data.success) { setError(data.error ?? 'Invalid credentials'); return }
+      const data = (await res.json()) as { success: boolean; error?: string }
+      if (!data.success) {
+        setError(data.error ?? 'Invalid credentials')
+        return
+      }
       router.push('/docs/environmental')
     } catch {
       setError('Network error. Please try again.')
@@ -31,110 +35,292 @@ export default function DocsLogin() {
     }
   }
 
-  const s: Record<string, React.CSSProperties> = {
-    page: {
-      minHeight: '100vh', background: '#f3f4f6',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      padding: '24px',
-      fontFamily: "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-    },
-    wrap:      { width: '100%', maxWidth: '400px' },
-    logoArea:  { textAlign: 'center', marginBottom: '28px' },
-    logoRow:   { display: 'inline-flex', alignItems: 'center', gap: '10px', marginBottom: '6px' },
-    logoIcon:  { width: '38px', height: '38px', background: '#1d4ed8', borderRadius: '9px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-    logoTitle: { fontSize: '20px', fontWeight: 700, color: '#111827' },
-    logoSub:   { fontSize: '13px', color: '#6b7280', display: 'block' },
-    card:      { background: '#ffffff', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '32px', boxShadow: '0 1px 4px rgba(0,0,0,0.07)' },
-    cardTitle: { fontSize: '18px', fontWeight: 700, color: '#111827', marginBottom: '4px' },
-    cardSub:   { fontSize: '13px', color: '#6b7280', marginBottom: '24px' },
-    form:      { display: 'flex', flexDirection: 'column', gap: '18px' },
-    fieldWrap: { display: 'flex', flexDirection: 'column', gap: '6px' },
-    label:     { fontSize: '13px', fontWeight: 500, color: '#374151' },
-    input:     { width: '100%', padding: '10px 14px', border: '1.5px solid #d1d5db', borderRadius: '8px', fontSize: '14px', color: '#111827', background: '#fff', outline: 'none', fontFamily: 'inherit' },
-    pwWrap:    { position: 'relative' },
-    pwInput:   { width: '100%', padding: '10px 44px 10px 14px', border: '1.5px solid #d1d5db', borderRadius: '8px', fontSize: '14px', color: '#111827', background: '#fff', outline: 'none', fontFamily: 'inherit' },
-    eyeBtn:    { position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', display: 'flex', alignItems: 'center', padding: '0' },
-    errorBox:  { background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', padding: '10px 14px', fontSize: '13px', color: '#dc2626' },
-    btn:       { width: '100%', padding: '11px', background: '#1d4ed8', color: '#ffffff', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
-    btnOff:    { width: '100%', padding: '11px', background: '#bfdbfe', color: '#ffffff', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: 600, cursor: 'not-allowed', fontFamily: 'inherit' },
-    footer:    { textAlign: 'center', fontSize: '12px', color: '#9ca3af', marginTop: '20px' },
-  }
-
   const isDisabled = !email.trim() || !password || loading
 
   return (
-    <div style={s.page}>
-      <div style={s.wrap}>
-        <div style={s.logoArea}>
-          <div style={s.logoRow}>
-            <div style={s.logoIcon}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
-                <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-                <path d="M2 17l10 5 10-5"/>
-                <path d="M2 12l10 5 10-5"/>
+    <div className="login-root">
+      <div className="login-card">
+        <div className="login-head">
+          <div className="logo-row">
+            <span className="logo-mark">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                <path d="M2 17l10 5 10-5" />
+                <path d="M2 12l10 5 10-5" />
               </svg>
-            </div>
-            <span style={s.logoTitle}>Insuretech Data Platform</span>
+            </span>
+            <span className="logo-word">Insuretech</span>
+            <span className="logo-sep">/</span>
+            <span className="logo-sub">API Platform</span>
           </div>
-          <span style={s.logoSub}>Developer Documentation</span>
+          <h1>Sign in to the developer API portal</h1>
         </div>
 
-        <div style={s.card}>
-          <div style={s.cardTitle}>Sign in</div>
-          <div style={s.cardSub}>Enter your developer credentials to access the portal.</div>
+        <form className="login-form" onSubmit={handleSubmit}>
+          <div className="field">
+            <label htmlFor="email">Email</label>
+            <input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoComplete="email"
+              autoFocus
+              placeholder="you@company.com"
+            />
+          </div>
 
-          <form style={s.form} onSubmit={handleSubmit}>
-            <div style={s.fieldWrap}>
-              <label style={s.label}>Email</label>
+          <div className="field">
+            <label htmlFor="password">Password</label>
+            <div className="pw-wrap">
               <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                autoComplete="email"
-                autoFocus
-                placeholder="you@example.com"
-                style={s.input}
+                id="password"
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="current-password"
+                placeholder="••••••••••••"
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                className="eye-btn"
+                tabIndex={-1}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+              >
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
             </div>
+          </div>
 
-            <div style={s.fieldWrap}>
-              <label style={s.label}>Password</label>
-              <div style={s.pwWrap}>
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  autoComplete="current-password"
-                  placeholder="••••••••"
-                  style={s.pwInput}
-                />
-                <button type="button" onClick={() => setShowPassword((v) => !v)} style={s.eyeBtn} tabIndex={-1}>
-                  {showPassword ? (
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2">
-                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
-                      <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
-                      <line x1="1" y1="1" x2="23" y2="23"/>
-                    </svg>
-                  ) : (
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2">
-                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                      <circle cx="12" cy="12" r="3"/>
-                    </svg>
-                  )}
-                </button>
-              </div>
+          {error && (
+            <div className="error-box" role="alert">
+              {error}
             </div>
+          )}
 
-            {error && <div style={s.errorBox}>{error}</div>}
-
-            <button type="submit" disabled={isDisabled} style={isDisabled ? s.btnOff : s.btn}>
-              {loading ? 'Signing in…' : 'Sign In'}
-            </button>
-          </form>
-        </div>
-
-        <div style={s.footer}>© 2026 Insuretech Data Platform · API Portal v1</div>
+          <button type="submit" disabled={isDisabled} className="submit-btn">
+            {loading ? 'Signing in…' : 'Sign in'}
+          </button>
+        </form>
       </div>
+
+      <footer className="login-footer">
+        © 2026 Perfios Software Solutions Private Limited
+      </footer>
+
+      <style jsx>{`
+        .login-root {
+          min-height: 100dvh;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 40px 20px;
+          position: relative;
+          background: var(--color-bg);
+          font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+        /* faint contour-grid base — nods to terrain / hazard data */
+        .login-root::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          pointer-events: none;
+          background-image: linear-gradient(var(--color-border) 1px, transparent 1px),
+            linear-gradient(90deg, var(--color-border) 1px, transparent 1px);
+          background-size: 52px 52px;
+          -webkit-mask-image: radial-gradient(70% 70% at 50% 45%, #000, transparent 82%);
+          mask-image: radial-gradient(70% 70% at 50% 45%, #000, transparent 82%);
+          opacity: 0.5;
+        }
+        .login-card {
+          position: relative;
+          width: 100%;
+          max-width: 460px;
+          background: var(--color-surface);
+          border-radius: 16px;
+          /* warm-tinted shadow (matches paper hue) + inner edge highlight for refraction */
+          box-shadow: 0 0 0 1px var(--color-border),
+            inset 0 1px 0 rgba(255, 255, 255, 0.6),
+            0 12px 40px -8px rgba(74, 58, 42, 0.16),
+            0 4px 12px -4px rgba(74, 58, 42, 0.1);
+          overflow: hidden;
+        }
+        :global(.dark) .login-card {
+          box-shadow: 0 0 0 1px var(--color-border),
+            inset 0 1px 0 rgba(255, 255, 255, 0.04),
+            0 16px 44px -10px rgba(0, 0, 0, 0.7);
+        }
+        .login-head {
+          padding: 34px 36px 4px;
+        }
+        .logo-row {
+          display: flex;
+          align-items: center;
+          gap: 9px;
+          margin-bottom: 32px;
+        }
+        .logo-mark {
+          width: 28px;
+          height: 28px;
+          border-radius: 8px;
+          background: var(--color-text-primary);
+          display: grid;
+          place-items: center;
+          flex: none;
+        }
+        :global(.dark) .logo-mark {
+          background: var(--color-accent);
+        }
+        .logo-word {
+          font-size: 15px;
+          font-weight: 600;
+          color: var(--color-text-primary);
+          letter-spacing: -0.02em;
+        }
+        .logo-sep {
+          color: var(--color-border-strong);
+        }
+        .logo-sub {
+          font-size: 14px;
+          color: var(--color-text-muted);
+        }
+        h1 {
+          margin: 0 0 10px;
+          font-family: var(--font-serif), Georgia, serif;
+          font-size: 29px;
+          font-weight: 600;
+          color: var(--color-text-primary);
+          letter-spacing: -0.01em;
+          line-height: 1.12;
+          text-wrap: balance;
+        }
+        .sub {
+          margin: 0;
+          font-size: 14px;
+          color: var(--color-text-muted);
+          line-height: 1.6;
+        }
+        .login-form {
+          padding: 28px 36px 34px;
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+        }
+        .submit-btn {
+          margin-top: 6px;
+        }
+        .field label {
+          display: block;
+          font-size: 13px;
+          font-weight: 500;
+          color: var(--color-text-body);
+          margin-bottom: 7px;
+        }
+        .field input,
+        .pw-wrap input {
+          width: 100%;
+          font-family: inherit;
+          font-size: 14px;
+          padding: 12px 13px;
+          border: 0;
+          border-radius: 9px;
+          background: var(--color-surface);
+          box-shadow: 0 0 0 1px var(--color-border-strong);
+          color: var(--color-text-primary);
+          outline: none;
+          transition: box-shadow 0.15s;
+        }
+        .pw-wrap input {
+          padding-right: 42px;
+        }
+        .field input::placeholder,
+        .pw-wrap input::placeholder {
+          color: var(--color-text-xmuted);
+        }
+        .field input:focus,
+        .pw-wrap input:focus {
+          box-shadow: 0 0 0 1px var(--color-accent), 0 0 0 4px var(--color-accent-tint);
+        }
+        .pw-wrap {
+          position: relative;
+        }
+        .eye-btn {
+          position: absolute;
+          right: 5px;
+          top: 50%;
+          transform: translateY(-50%);
+          background: none;
+          border: 0;
+          cursor: pointer;
+          color: var(--color-text-muted);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 40px;
+          height: 40px;
+          padding: 0;
+        }
+        .eye-btn:hover {
+          color: var(--color-text-body);
+        }
+        .error-box {
+          background: var(--color-error-bg, #f8e9e6);
+          box-shadow: inset 0 0 0 1px var(--color-error-border, #eec2ba);
+          border-radius: 9px;
+          padding: 10px 13px;
+          font-size: 13px;
+          color: var(--color-error);
+        }
+        .submit-btn {
+          width: 100%;
+          font-family: inherit;
+          font-size: 14px;
+          font-weight: 500;
+          padding: 12px 14px;
+          border: 0;
+          border-radius: 9px;
+          background: var(--color-text-primary);
+          color: var(--color-bg);
+          cursor: pointer;
+          transition: opacity 0.15s, transform 0.08s ease;
+        }
+        .submit-btn:hover:not(:disabled) {
+          opacity: 0.9;
+        }
+        .submit-btn:active:not(:disabled) {
+          transform: translateY(1px);
+        }
+        .submit-btn:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+        :global(.dark) .submit-btn {
+          background: var(--color-accent);
+          color: #fff;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .field input,
+          .pw-wrap input,
+          .submit-btn,
+          .eye-btn {
+            transition: none;
+          }
+        }
+        .login-footer {
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          width: 100%;
+          padding: 20px 16px 22px;
+          text-align: center;
+          font-size: 11px;
+          font-weight: 500;
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
+          color: var(--color-text-xmuted);
+        }
+      `}</style>
     </div>
   )
 }

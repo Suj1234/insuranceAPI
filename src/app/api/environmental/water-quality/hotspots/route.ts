@@ -106,7 +106,8 @@ export async function GET(req: NextRequest) {
           { status: 404 }
         )
       }
-      resolvedState = coords[0].stateName
+      // Strip literal quote characters that may exist from a bad CSV import, then normalise casing
+      resolvedState = normaliseStateName(coords[0].stateName.trim().replace(/^"|"$/g, ''))
     } else {
       resolvedState = normaliseStateName(stateParam!)
     }

@@ -53,6 +53,7 @@ jobs:
           docker run -d \
             --name api-playground \
             --restart unless-stopped \
+            --network insurance_network \
             -p 5011:3000 \
             --env-file /opt/api-playground/.env.production \
             "$IMAGE"

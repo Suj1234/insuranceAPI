@@ -9,6 +9,7 @@
  *  4. water_quality_hotspots (~400 rows)
  *  5. district_air_quality   (186,216 rows) — large, takes ~3 min
  *  6. pincode_coords         (165,627 rows, deduped) — fallback lookup
+ *  7. pincode_aqueduct       (~19,561 rows) — WRI Aqueduct Floods v2
  */
 
 import { readFileSync, createReadStream } from 'fs'
@@ -41,15 +42,23 @@ const sql = neon(DATABASE_URL)
 function num(v) { return (v === '' || v === 'None' || v === 'nan' || v == null) ? null : Number(v) }
 function str(v) { return (v === '' || v === 'None' || v == null) ? null : String(v).trim() }
 
+function unquoteCsv(v) {
+  if (v == null) return null
+  const t = v.trim()
+  // Strip surrounding double-quotes and unescape internal "" → "
+  if (t.startsWith('"') && t.endsWith('"')) return t.slice(1, -1).replace(/""/g, '"')
+  return t
+}
+
 async function readCsv(relPath) {
   const rows = []
   const rl = createInterface({ input: createReadStream(resolve(__dir, '..', relPath)), crlfDelay: Infinity })
   let headers = null
   for await (const line of rl) {
-    if (!headers) { headers = line.split(',').map(h => h.trim()); continue }
+    if (!headers) { headers = line.split(',').map(h => unquoteCsv(h)); continue }
     const vals = line.split(',')
     const obj = {}
-    headers.forEach((h, i) => { obj[h] = vals[i]?.trim() ?? null })
+    headers.forEach((h, i) => { obj[h] = unquoteCsv(vals[i]) ?? null })
     rows.push(obj)
   }
   return rows
@@ -72,7 +81,7 @@ async function runBatch(label, rows, batchSize, fn) {
 }
 
 // ── 1. pincode_risk_index ─────────────────────────────────────────────────────
-console.log('\n[1/6] pincode_risk_index...')
+console.log('\n[1/7] pincode_risk_index...')
 const pri = await readCsv('data/output/pincode_risk_index.csv')
 console.log(`  ${pri.length.toLocaleString()} rows read`)
 await sql`TRUNCATE TABLE pincode_risk_index`
@@ -122,7 +131,7 @@ await runBatch('pincodes', pri, 40, async r => {
 })
 
 // ── 2. district_risk_index ────────────────────────────────────────────────────
-console.log('\n[2/6] district_risk_index...')
+console.log('\n[2/7] district_risk_index...')
 const dri = await readCsv('data/output/district_risk_index_final.csv')
 console.log(`  ${dri.length.toLocaleString()} rows read`)
 await sql`TRUNCATE TABLE district_risk_index`
@@ -173,7 +182,7 @@ await runBatch('districts', dri, 20, async r => {
 })
 
 // ── 3. water_quality_state ────────────────────────────────────────────────────
-console.log('\n[3/6] water_quality_state...')
+console.log('\n[3/7] water_quality_state...')
 const wqs = await readCsv('data/output/water_quality_state.csv')
 console.log(`  ${wqs.length} rows read`)
 await sql`TRUNCATE TABLE water_quality_state`
@@ -206,7 +215,7 @@ await runBatch('states', wqs, 10, async r => {
 })
 
 // ── 4. water_quality_hotspots ─────────────────────────────────────────────────
-console.log('\n[4/6] water_quality_hotspots...')
+console.log('\n[4/7] water_quality_hotspots...')
 const wqh = await readCsv('data/output/water_quality_hotspots.csv')
 console.log(`  ${wqh.length} rows read`)
 await sql`TRUNCATE TABLE water_quality_hotspots`
@@ -229,7 +238,7 @@ await runBatch('hotspots', wqh, 20, async r => {
 })
 
 // ── 5. district_air_quality ───────────────────────────────────────────────────
-console.log('\n[5/6] district_air_quality (186K rows — ~3 min)...')
+console.log('\n[5/7] district_air_quality (186K rows — ~3 min)...')
 const daq = await readCsv('data/output/district_air_quality_final.csv')
 console.log(`  ${daq.length.toLocaleString()} rows read`)
 await sql`TRUNCATE TABLE district_air_quality`
@@ -259,7 +268,7 @@ await runBatch('AQI rows', daq, 50, async r => {
 })
 
 // ── 6. pincode_coords ─────────────────────────────────────────────────────────
-console.log('\n[6/6] pincode_coords (165K rows, deduped by pincode)...')
+console.log('\n[6/7] pincode_coords (165K rows, deduped by pincode)...')
 const pc = await readCsv('data/output/pincode_coords.csv')
 console.log(`  ${pc.length.toLocaleString()} rows read`)
 // Deduplicate — keep first occurrence per pincode with valid coords
@@ -284,6 +293,44 @@ await runBatch('coords', pcUniq, 50, async r => {
   `
 })
 
+// ── 7. pincode_aqueduct ───────────────────────────────────────────────────────
+console.log('\n[7/7] pincode_aqueduct...')
+const aqd = await readCsv('data/flood/gee_outputs/aqueduct_full.csv')
+console.log(`  ${aqd.length.toLocaleString()} rows read`)
+
+// Column list mirrors extract_aqueduct.py's build_queries() output order
+const _AQ_RPS       = [10, 25, 50, 100, 250, 500, 1000]
+const _AQ_SCENARIOS = ['rcp45_2030', 'rcp85_2030', 'rcp45_2050', 'rcp85_2050', 'rcp45_2080', 'rcp85_2080']
+const AQD_DATA_COLS = [
+  ..._AQ_RPS.map(rp => `riverine_rp${rp}_m`),
+  ..._AQ_SCENARIOS.flatMap(s => _AQ_RPS.map(rp => `riverine_${s}_rp${rp}_m`)),
+  ..._AQ_RPS.map(rp => `coastal_nosub_hist_rp${rp}_p95_m`),
+  ..._AQ_SCENARIOS.flatMap(s => _AQ_RPS.flatMap(rp => [
+    `coastal_nosub_${s}_rp${rp}_p95_m`,
+    `coastal_nosub_${s}_rp${rp}_p50_m`,
+  ])),
+  ..._AQ_RPS.map(rp => `coastal_wtsub_hist_rp${rp}_p95_m`),
+  ..._AQ_SCENARIOS.flatMap(s => _AQ_RPS.flatMap(rp => [
+    `coastal_wtsub_${s}_rp${rp}_p95_m`,
+    `coastal_wtsub_${s}_rp${rp}_p50_m`,
+  ])),
+]
+const AQD_ALL_COLS  = ['pincode', ...AQD_DATA_COLS, 'data_as_of_date']
+const AQD_COL_LIST  = AQD_ALL_COLS.join(', ')
+const AQD_PARAM_LIST = AQD_ALL_COLS.map((_, i) => `$${i + 1}`).join(', ')
+const AQD_CONFLICT   = `ON CONFLICT (pincode) DO UPDATE SET updated_at = NOW()`
+const AQD_STMT       = `INSERT INTO pincode_aqueduct (${AQD_COL_LIST}) VALUES (${AQD_PARAM_LIST}) ${AQD_CONFLICT}`
+
+await sql`TRUNCATE TABLE pincode_aqueduct`
+await runBatch('aqueduct', aqd, 50, async r => {
+  const values = [
+    str(r.pincode),
+    ...AQD_DATA_COLS.map(c => num(r[c])),
+    '2020-04',
+  ]
+  await sql(AQD_STMT, values)
+})
+
 // ── Final verification ────────────────────────────────────────────────────────
 console.log('\n── Verification ─────────────────────────────────────────────────')
 const counts = await Promise.all([
@@ -293,6 +340,7 @@ const counts = await Promise.all([
   sql`SELECT COUNT(*) AS n FROM water_quality_hotspots`,
   sql`SELECT COUNT(*) AS n FROM district_air_quality`,
   sql`SELECT COUNT(*) AS n FROM pincode_coords`,
+  sql`SELECT COUNT(*) AS n FROM pincode_aqueduct`,
 ])
 console.log(`  pincode_risk_index:     ${Number(counts[0][0].n).toLocaleString()}`)
 console.log(`  district_risk_index:    ${Number(counts[1][0].n).toLocaleString()}`)
@@ -300,4 +348,5 @@ console.log(`  water_quality_state:    ${Number(counts[2][0].n).toLocaleString()
 console.log(`  water_quality_hotspots: ${Number(counts[3][0].n).toLocaleString()}`)
 console.log(`  district_air_quality:   ${Number(counts[4][0].n).toLocaleString()}`)
 console.log(`  pincode_coords:         ${Number(counts[5][0].n).toLocaleString()}`)
+console.log(`  pincode_aqueduct:       ${Number(counts[6][0].n).toLocaleString()}`)
 console.log('\n✓ All done.')

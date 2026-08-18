@@ -28,6 +28,15 @@ yarn-error.log*
 # local env files
 .env*.local
 
+# secrets / credentials — NEVER commit
+gee-key.json
+*-key.json
+*.key
+gee-service-account*.json
+
+# logs
+*.log
+
 # vercel
 .vercel
 
@@ -42,3 +51,4 @@ data/sedac/
 scripts/__pycache__/
 scripts/load_log.txt
 scripts/qa_log.txt
+.gstack/
