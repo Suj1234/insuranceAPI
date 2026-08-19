@@ -9,6 +9,33 @@ Workflow: [.github/workflows/deploy.yml](../.github/workflows/deploy.yml)
 Image: `harbor.hinagro.com/insurance/api-playground:latest`
 Container: `api-playground`, port **5011 → 3000**
 
+## How the public URL reaches this app (READ THIS — it's not obvious)
+
+Public URL: `https://iadore-onboarding-poc.ins.perfios.com/demo/api-playground`
+
+The whole demo site has **ONE public door: port 5009** (the `india-health-onboarding`
+container). Cloudflare sends every `/demo/*` request there. **This app has no public
+port** — `5011` is only for direct/debug access on the host. Instead, india-health
+forwards `/demo/api-playground/*` to us internally, by container name, over the
+`demo-net` Docker network:
+
+```
+Cloudflare (443) → 5009 india-health → rewrite → api-playground:3000/demo/api-playground/* → us
+```
+
+Two hard requirements, or you get a 404/502:
+1. **This container MUST run on `--network demo-net`** (NOT `insurance_network`) so
+   `http://api-playground:3000` resolves from india-health. The workflow does this.
+2. **india-health's `next.config.mjs` must have the rewrite** for `/api-playground`
+   + `/api-playground/:path*` → `http://api-playground:3000/demo/api-playground...`
+   (already added there). This app is Next.js with `basePath: '/demo/api-playground'`,
+   so the bare path works natively — no trailing-slash forward needed (unlike GFF's
+   FastAPI mount).
+
+Normal code changes here need NOTHING in india-health — just `git push` this repo.
+Only touch india-health's rewrite if this app's **URL path, container name, or port**
+changes. Same one-port model as `/demo/life` (GFF) and `/demo/facescan`.
+
 ## The flow
 ```
 push to main

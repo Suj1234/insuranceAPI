@@ -49,11 +49,14 @@ jobs:
           docker ps -q --filter "publish=5011" | xargs -r docker rm -f
 
       - name: Run new container
+        # MUST be on demo-net: the public door is india-health (port 5009) which
+        # forwards /demo/api-playground/* to us by container name over demo-net.
+        # On any other network, `http://api-playground:3000` won't resolve → 502.
         run: |
           docker run -d \
             --name api-playground \
             --restart unless-stopped \
-            --network insurance_network \
+            --network demo-net \
             -p 5011:3000 \
             --env-file /opt/api-playground/.env.production \
             "$IMAGE"
