@@ -36,16 +36,60 @@ Normal code changes here need NOTHING in india-health — just `git push` this r
 Only touch india-health's rewrite if this app's **URL path, container name, or port**
 changes. Same one-port model as `/demo/life` (GFF) and `/demo/facescan`.
 
-## The flow
+## ⚠️ IMPORTANT: this app's runner is on a DIFFERENT server than the demo box
+
+The GitHub Actions runner for THIS repo lives on a **different machine** than the demo
+server (`172.17.4.99`, where india-health / port 5009 / `demo-net` run). So:
+
+- `git push` **builds the image and pushes it to Harbor** — that part works.
+- `git push` **does NOT deploy to the demo server.** The workflow's `docker run` step
+  runs on the *other* host, which has no `demo-net` network (`docker: network demo-net
+  not found`, exit 125). That is expected and harmless — ignore that failure.
+- **To make a code change live, you must manually redeploy on the demo server** (Part
+  "Manual redeploy" below). This is the real deploy step for this app.
+
+If the runner is ever moved onto the demo box, the workflow would deploy automatically
+and the manual step goes away — but as of 2026-08-19 it is NOT, so treat deploys as manual.
+
+## The flow (what actually happens today)
 ```
 push to main
-  → self-hosted runner on the server (no SSH — runs on the box)
+  → runner on ANOTHER server:
       1. docker login harbor.hinagro.com   (HARBOR_USERNAME / HARBOR_PASSWORD)
       2. docker build -t harbor.hinagro.com/insurance/api-playground:latest .
-      3. docker push
-      4. docker rm -f api-playground (and anything holding port 5011)
-      5. docker run -d -p 5011:3000 --env-file /opt/api-playground/.env.production
+      3. docker push                                   ✅ image now in Harbor
+      4. docker run … --network demo-net …             ❌ fails: no demo-net on that host
+  → THEN, manually on the demo server (172.17.4.99): pull + run (see below)
 ```
+
+## Manual redeploy on the demo server (the real deploy)
+
+VPN + SSH to `172.17.4.99`, then:
+```bash
+sudo docker login harbor.hinagro.com     # once per session if creds not cached
+sudo docker pull harbor.hinagro.com/insurance/api-playground:latest
+sudo docker rm -f api-playground
+sudo docker run -d \
+  --name api-playground \
+  --restart unless-stopped \
+  --network demo-net \
+  -p 5011:3000 \
+  --env-file /opt/api-playground/.env.production \
+  harbor.hinagro.com/insurance/api-playground:latest
+
+# verify
+sudo docker ps --format '{{.Names}} {{.Status}}' | grep api-playground
+curl -s -o /dev/null -w "%{http_code}\n" https://iadore-onboarding-poc.ins.perfios.com/demo/api-playground/docs/login   # expect 200
+```
+
+**Env file location on the demo server:** `/opt/api-playground/.env.production`
+(7 keys: `DATABASE_URL`, `NEXTAUTH_SECRET`, `NEXTAUTH_URL`, `INTERNAL_ENV_API_KEY`,
+`KARZA_KEY`, `KARZA_BASE_URL`, `NEXT_PUBLIC_APP_URL`). `chmod 600`. Not in git.
+
+**Normal behaviour, not a bug:** bare `/demo/api-playground` → 307 → `/docs/environmental`
+→ 307 → `/docs/login` (protected routes redirect unauthenticated users to login). The
+`/demo/api-playground` prefix is added automatically by Next.js `basePath`. Landing on the
+login page = working.
 
 ## One-time setup
 
