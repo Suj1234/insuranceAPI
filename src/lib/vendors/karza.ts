@@ -29,6 +29,9 @@ export const KARZA_PAN_LINK_UNIQUE_CONSENT_PATH = '/v3/aadhaar-consent'
 /** PAN Link Status (unique Aadhaar) — step 2: check PAN-Aadhaar link using accessKey. */
 export const KARZA_PAN_LINK_UNIQUE_CHECK_PATH = '/v3/pan-aadhaar-link'
 
+/** PAN Link Status (any Aadhaar) endpoint path on the vendor. */
+export const KARZA_PAN_LINK_ANY_PATH = '/v3/pan-link'
+
 /**
  * Fields in the PAN request/response that are PII and must never be logged raw.
  * Used by the redactor before writing api_call_logs.

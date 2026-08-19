@@ -4,6 +4,7 @@ import { PAN_STATUS_VARIANTS } from './pan-status-variants'
 import { PAN_DOB_STATUS_VARIANTS } from './pan-dob-status-variants'
 import { PAN_LINK_UNIQUE_CONSENT_VARIANTS } from './pan-link-unique-consent-variants'
 import { PAN_LINK_UNIQUE_CHECK_VARIANTS } from './pan-link-unique-check-variants'
+import { PAN_LINK_ANY_VARIANTS } from './pan-link-any-variants'
 
 export type ParamIn = 'query' | 'header' | 'path' | 'body'
 export type SchemaType = 'string' | 'number' | 'integer' | 'boolean' | 'array' | 'object' | 'null'
@@ -2059,5 +2060,48 @@ export const API_DEFINITIONS: ApiDefinition[] = [
       },
     }, null, 2),
     variants: PAN_LINK_UNIQUE_CHECK_VARIANTS,
+  },
+
+  // ── Verification (KYC) — PAN Link Status (any Aadhaar) (TKYC) ────────────
+  {
+    id: 'verify-pan-link-any',
+    label: 'PAN Link Status (Any Aadhaar)',
+    group: 'Verification (KYC)',
+    method: 'POST',
+    path: '/api/verify/pan-link-any',
+    shortDescription: 'Check whether a PAN is linked with any Aadhaar number — only PAN input required',
+    description:
+      'Checks whether a given PAN is linked with any Aadhaar number. Unlike the unique-Aadhaar flow, this only ' +
+      'requires the PAN as input — no Aadhaar number, no consent-and-accessKey handshake. The portal calls the ' +
+      'verification provider on your behalf using your credentials; you only send your platform API key.',
+    authNote: 'Pass your API key as the `x-api-key` request header. The vendor key is injected server-side.',
+    params: [
+      { name: 'x-api-key', in: 'header', required: true, type: 'string', description: 'Your platform API key', example: 'env_abc123...' },
+      { name: 'consent', in: 'body', required: true, type: 'string', description: 'Consent is required to make the API request.', example: 'Y', enum: ['Y', 'N'] },
+      { name: 'pan', in: 'body', required: true, type: 'string', label: 'PAN Number', uppercase: true, placeholder: 'ABCDE1234F', description: 'PAN Number to be verified', validation: { minLength: 10, maxLength: 10, pattern: '^[A-Za-z]{3}[Pp][A-Za-z][0-9]{4}[A-Za-z]$', hint: '5 letters, 4 digits, 1 letter' } },
+      { name: 'clientData', in: 'body', required: false, type: 'object', description: 'Data of the user sharing consent' },
+      { name: 'clientData.caseId', in: 'body', required: false, type: 'string', description: 'Unique case id/lead id of the user sharing consent', validation: { maxLength: 200, hint: 'Max-length 200' } },
+    ],
+    responseFields: [
+      { field: 'data.statusCode', type: 'integer', required: true, description: 'Internal Status Code that denotes the status of the request.' },
+      { field: 'data.requestId', type: 'string', required: true, description: 'Unique id of the API request.' },
+      { field: 'data.result', type: 'object', required: true, description: 'Response object for the given inputs.' },
+      { field: 'data.result.isAadhaarLinked', type: 'boolean', required: false, description: 'Status whether PAN is linked or not (True/False)' },
+      { field: 'data.clientData', type: 'object', required: true, description: 'Data of the user sharing consent' },
+      { field: 'data.clientData.caseId', type: 'string', required: true, description: 'Unique case id/lead id of the user sharing consent' },
+    ],
+    exampleRequest: {
+      body: JSON.stringify({ pan: 'AXXXXXXXXA', consent: 'Y', clientData: { caseId: '123456' } }, null, 2),
+    },
+    exampleResponse: JSON.stringify({
+      success: true,
+      data: {
+        requestId: '4cd50347-a0a7-441e-984c-b2d2c2908110',
+        statusCode: 101,
+        result: { isAadhaarLinked: true },
+        clientData: { caseId: '123456' },
+      },
+    }, null, 2),
+    variants: PAN_LINK_ANY_VARIANTS,
   },
 ]
