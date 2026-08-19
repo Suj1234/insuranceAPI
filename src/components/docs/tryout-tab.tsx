@@ -437,7 +437,7 @@ export function TryoutTab({ api, apiKey }: TryoutTabProps) {
     setResponseOpen(true)   // auto-expand the Response section on every send
     const t0 = Date.now()
     try {
-      const url = new URL(api.path, window.location.origin)
+      const url = new URL(apiPath(api.path), window.location.origin)
       // Query params always go on the URL.
       for (const p of activeQueryParams) {
         if (p.in === 'query' && values[p.name]) url.searchParams.set(p.name, values[p.name])
