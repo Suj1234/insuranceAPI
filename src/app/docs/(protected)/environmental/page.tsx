@@ -33,8 +33,22 @@ export default function EnvironmentalDocsPage() {
     }
   }, [])
 
+  // Deep-link: ?api=<id> opens straight to that API (shareable/bookmarkable).
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get('api')
+    if (id && API_DEFINITIONS.some(a => a.id === id)) {
+      setView({ kind: 'api', apiId: id })
+      setDocTab('Documentation')
+    }
+  }, [])
+
   function handleSetView(v: ActiveView) {
     setView(v)
+    // Reflect selection in the URL so any API is shareable/bookmarkable.
+    const url = new URL(window.location.href)
+    if (v.kind === 'api') url.searchParams.set('api', v.apiId)
+    else url.searchParams.delete('api')
+    window.history.replaceState(null, '', url)
     if (v.kind === 'api') {
       setDocTab('Documentation')
       setTimeout(() => scrollRef.current?.scrollTo({ top: 0 }), 0)

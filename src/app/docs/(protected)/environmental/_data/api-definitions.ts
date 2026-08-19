@@ -85,7 +85,15 @@ export type AboutBlock =
   | { type: 'callout';    label: string; text: string }
   | { type: 'divider' }
 
-export type ApiGroupName = 'Environmental' | 'Flood & Hydrology' | 'Verification (KYC)'
+export type ApiGroupName =
+  | 'Environmental'
+  | 'Flood & Hydrology'
+  | 'KYC Authentication - Retail'
+  | 'KYC Authentication - Commercial'
+  | 'Employment & Income'
+  | 'Asset & Vehicle'
+  | 'Banking & Payments'
+  | 'Digital Essentials'
 
 export interface ApiDefinition {
   id: string
@@ -1585,7 +1593,7 @@ export const API_DEFINITIONS: ApiDefinition[] = [
   {
     id: 'verify-pan',
     label: 'PAN Profile',
-    group: 'Verification (KYC)',
+    group: 'KYC Authentication - Retail',
     method: 'POST',
     path: '/api/verify/pan',
     shortDescription: 'Verify a PAN and fetch the linked identity profile (name, address, Aadhaar-link status)',
@@ -1779,7 +1787,7 @@ export const API_DEFINITIONS: ApiDefinition[] = [
   {
     id: 'verify-pan-status',
     label: 'PAN Status',
-    group: 'Verification (KYC)',
+    group: 'KYC Authentication - Retail',
     method: 'POST',
     path: '/api/verify/pan-status',
     shortDescription: 'Authenticate a PAN and check its status (Active/Inactive) plus name & DOB match against ITD records',
@@ -1886,7 +1894,7 @@ export const API_DEFINITIONS: ApiDefinition[] = [
   {
     id: 'verify-pan-dob-status',
     label: 'PAN DOB Status',
-    group: 'Verification (KYC)',
+    group: 'KYC Authentication - Retail',
     method: 'POST',
     path: '/api/verify/pan-dob-status',
     shortDescription: 'Verify a PAN and fetch basic profile: status (Active/Inactive), name, and DOB',
@@ -1970,7 +1978,7 @@ export const API_DEFINITIONS: ApiDefinition[] = [
   {
     id: 'verify-pan-link-unique-consent',
     label: 'PAN Link Status (Consent)',
-    group: 'Verification (KYC)',
+    group: 'KYC Authentication - Retail',
     method: 'POST',
     path: '/api/verify/pan-link-unique-consent',
     shortDescription: 'Step 1 of 2 — share consent and receive an accessKey for the PAN-Aadhaar link check',
@@ -2030,7 +2038,7 @@ export const API_DEFINITIONS: ApiDefinition[] = [
   {
     id: 'verify-pan-link-unique-check',
     label: 'PAN Link Status (Check)',
-    group: 'Verification (KYC)',
+    group: 'KYC Authentication - Retail',
     method: 'POST',
     path: '/api/verify/pan-link-unique-check',
     shortDescription: 'Step 2 of 2 — check whether a PAN is linked to a specific Aadhaar number',
@@ -2081,7 +2089,7 @@ export const API_DEFINITIONS: ApiDefinition[] = [
   {
     id: 'verify-pan-link-any',
     label: 'PAN Link Status (Any Aadhaar)',
-    group: 'Verification (KYC)',
+    group: 'KYC Authentication - Retail',
     method: 'POST',
     path: '/api/verify/pan-link-any',
     shortDescription: 'Check whether a PAN is linked with any Aadhaar number — only PAN input required',
@@ -2124,7 +2132,7 @@ export const API_DEFINITIONS: ApiDefinition[] = [
   {
     id: 'verify-bank-ac-advanced',
     label: 'Bank AC Verification Advanced',
-    group: 'Verification (KYC)',
+    group: 'Banking & Payments',
     method: 'POST',
     path: '/api/verify/bank-ac-advanced',
     shortDescription: 'Verify a bank account by performing a transaction/enquiry call and reading the NPCI response',
@@ -2244,7 +2252,7 @@ export const API_DEFINITIONS: ApiDefinition[] = [
   {
     id: 'verify-bank-ac-silent',
     label: 'Silent Bank Account Verification',
-    group: 'Verification (KYC)',
+    group: 'Banking & Payments',
     method: 'POST',
     path: '/api/verify/bank-ac-silent',
     shortDescription: 'Verify a bank account via a non-penny NPCI verification call (no funds moved)',
@@ -2346,7 +2354,7 @@ export const API_DEFINITIONS: ApiDefinition[] = [
   {
     id: 'verify-dl',
     label: "Driver's License Authentication",
-    group: 'Verification (KYC)',
+    group: 'KYC Authentication - Retail',
     method: 'POST',
     path: '/api/verify/dl',
     shortDescription: "Authenticate a Driver's License issued by an Indian Road Transport Office",
@@ -2454,7 +2462,7 @@ export const API_DEFINITIONS: ApiDefinition[] = [
   {
     id: 'verify-passport',
     label: 'Passport Verification',
-    group: 'Verification (KYC)',
+    group: 'KYC Authentication - Retail',
     method: 'POST',
     path: '/api/verify/passport',
     shortDescription: 'Verify a passport issued by Passport Seva Kendra using File Number and Date of Birth',
@@ -2527,7 +2535,7 @@ export const API_DEFINITIONS: ApiDefinition[] = [
   {
     id: 'verify-rc-advanced',
     label: 'Vehicle RC Authentication - Advanced',
-    group: 'Verification (KYC)',
+    group: 'Asset & Vehicle',
     method: 'POST',
     path: '/api/verify/rc-advanced',
     shortDescription: 'Fetch detailed vehicle registration (RC) details for a given Vehicle Registration Number',
@@ -2642,7 +2650,7 @@ export const API_DEFINITIONS: ApiDefinition[] = [
   {
     id: 'verify-gst',
     label: 'GST Authentication',
-    group: 'Verification (KYC)',
+    group: 'KYC Authentication - Commercial',
     method: 'POST',
     path: '/api/verify/gst',
     shortDescription: 'Authenticate a 15-digit GSTIN and fetch registration, business, and (optionally) turnover details',
@@ -2737,7 +2745,7 @@ export const API_DEFINITIONS: ApiDefinition[] = [
   {
     id: 'verify-gst-advanced',
     label: 'GST Advanced',
-    group: 'Verification (KYC)',
+    group: 'KYC Authentication - Commercial',
     method: 'POST',
     path: '/api/verify/gst-advanced',
     shortDescription: "Identify all GSTINs linked to a PAN and fetch each one's profile and return filing history",
@@ -2802,7 +2810,7 @@ export const API_DEFINITIONS: ApiDefinition[] = [
   {
     id: 'verify-gst-by-pan',
     label: 'GST Search Basis PAN',
-    group: 'Verification (KYC)',
+    group: 'KYC Authentication - Commercial',
     method: 'POST',
     path: '/api/verify/gst-by-pan',
     shortDescription: 'Identify all GSTINs registered pan-India against a given PAN',
@@ -2858,7 +2866,7 @@ export const API_DEFINITIONS: ApiDefinition[] = [
   {
     id: 'verify-mca-signatories',
     label: 'MCA Signatories',
-    group: 'Verification (KYC)',
+    group: 'KYC Authentication - Commercial',
     method: 'POST',
     path: '/api/verify/mca-signatories',
     shortDescription: 'Authenticate directors/partners of a company or LLP by CIN/LLPIN',
@@ -2914,7 +2922,7 @@ export const API_DEFINITIONS: ApiDefinition[] = [
   {
     id: 'verify-udyog-aadhaar',
     label: 'Udyog Aadhar Number',
-    group: 'Verification (KYC)',
+    group: 'KYC Authentication - Commercial',
     method: 'POST',
     path: '/api/verify/udyog-aadhaar',
     shortDescription: 'Authenticate a Udyog Aadhaar Number (UAN) issued by the Ministry of MSME',
@@ -2989,7 +2997,7 @@ export const API_DEFINITIONS: ApiDefinition[] = [
   {
     id: 'verify-employment-advanced',
     label: 'Employment Verification Advanced (PAN Flow)',
-    group: 'Verification (KYC)',
+    group: 'Employment & Income',
     method: 'POST',
     path: '/api/verify/employment-advanced',
     shortDescription: "Authenticate and verify an individual's employment history using PAN, EPFO/UAN, and email/domain checks",
@@ -3055,7 +3063,7 @@ export const API_DEFINITIONS: ApiDefinition[] = [
   {
     id: 'verify-footprint-mobile',
     label: 'Digital FootPrint (Mobile)',
-    group: 'Verification (KYC)',
+    group: 'Digital Essentials',
     method: 'POST',
     path: '/api/verify/footprint-mobile',
     shortDescription: "Assess risk level for a phone number using its digital presence and network details",
@@ -3145,7 +3153,7 @@ export const API_DEFINITIONS: ApiDefinition[] = [
   {
     id: 'verify-footprint-email',
     label: 'Digital Foot Print (Email)',
-    group: 'Verification (KYC)',
+    group: 'Digital Essentials',
     method: 'POST',
     path: '/api/verify/footprint-email',
     shortDescription: 'Assess risk level for an email address using its digital presence and mailbox validity',
@@ -3218,7 +3226,7 @@ export const API_DEFINITIONS: ApiDefinition[] = [
   {
     id: 'verify-email-fraud',
     label: 'Email Fraud Check',
-    group: 'Verification (KYC)',
+    group: 'Digital Essentials',
     method: 'POST',
     path: '/api/verify/email-fraud',
     shortDescription: 'Check fraud and risk associated with an email address, its domain, and an IP address',
@@ -3273,7 +3281,7 @@ export const API_DEFINITIONS: ApiDefinition[] = [
   {
     id: 'verify-mobile-prefill',
     label: 'Mobile to Form Prefill',
-    group: 'Verification (KYC)',
+    group: 'Digital Essentials',
     method: 'POST',
     path: '/api/verify/mobile-prefill',
     shortDescription: "Prefill customer PAN and identity details using just a mobile number",

@@ -112,7 +112,7 @@ Add this object to the `API_DEFINITIONS` array in `api-definitions.ts`:
 {
   id: 'verify-<slug>',                 // unique, kebab-case, stable (used in URLs/state)
   label: '<Human Name>',               // sidebar + header title, e.g. 'Voter ID'
-  group: 'Verification (KYC)',         // sidebar group — see ApiGroupName
+  group: 'KYC Authentication - Retail',// sidebar group — see "Sidebar grouping" below for the full list
   method: 'POST',                      // from the PDF (KYC is usually POST)
   path: '/api/verify/<slug>',          // OUR proxy path (not the vendor's)
   shortDescription: '<one line>',      // the PDF's one-line summary (single line, truncates)
@@ -257,15 +257,40 @@ NOT filter the vendor response; the Data Preview renders whatever comes back.
 
 ## Sidebar grouping
 
-The nav groups APIs by the `group` field. Existing groups: `Environmental`,
-`Flood & Hydrology`, `Verification (KYC)`. To use an existing group, set
-`group: 'Verification (KYC)'` and you're done.
+The nav groups APIs by the `group` field. All 21 vendor APIs originally shipped
+under one flat `Verification (KYC)` bucket — with ~40 APIs total planned, that
+became one long undifferentiated list, and several labels also truncated with
+no way to see the full name. Fixed 2026-08-19:
+- Every sidebar item button now has `title={api.label}` → hover/focus shows
+  the full untruncated name as a native tooltip. No layout change.
+- The flat KYC bucket was split into subcategories **mirroring the vendor's
+  own TotalKYC documentation taxonomy** (visible in their docs site nav) —
+  reuse this scheme for every new API rather than inventing new group names:
 
-To add a NEW group:
+| `ApiGroupName` value | Vendor section this maps to | Used by (so far) |
+|---|---|---|
+| `'KYC Authentication - Retail'` | KYC Authentication - Retail | PAN Profile, PAN Status, PAN DOB Status, PAN Link Status (×3), Driver's License, Passport |
+| `'KYC Authentication - Commercial'` | KYC Authentication - Commercial | GST Authentication, GST Advanced, GST Search by PAN, MCA Signatories, Udyog Aadhar Number |
+| `'Employment & Income'` | Employment & Income Authentication | Employment Verification Advanced (PAN Flow) |
+| `'Asset & Vehicle'` | Asset & Vehicle Authentication | Vehicle RC Authentication - Advanced |
+| `'Banking & Payments'` | Banking & Payments Authentication | Bank AC Verification Advanced, Silent Bank Account Verification |
+| `'Digital Essentials'` | Digital Essentials - Contactability / Matching & Similarity | Digital Footprint (Mobile), Digital Footprint (Email), Email Fraud Check, Mobile to Form Prefill |
+| `'Environmental'` / `'Flood & Hydrology'` | — (not a vendor group; legacy ungrouped APIs, first 4 vs rest) | original environmental/flood APIs |
+
+To use an existing group, set e.g. `group: 'KYC Authentication - Retail'` and
+you're done — the sidebar filter + `<ApiGroup>` block already exist for all
+values above.
+
+To add a genuinely NEW group (only if the vendor's own taxonomy has a section
+none of the above covers — e.g. `KYC Authentication - Professionals`, `Utility
+Bill Authentication`, `OCR Services`, `Miscellaneous`, all visible in the
+vendor's own nav but unused by us so far):
 1. Add the name to the `ApiGroupName` union in `api-definitions.ts`.
-2. Add a filter + `<ApiGroup>` block in `src/components/docs/sidebar.tsx`
-   (mirror the existing `verifyApis` block). This is the ONE allowed sidebar
-   edit — it's wiring a data group, not changing the design.
+2. Add a `useState` toggle + filter + `<ApiGroup>` block in
+   `src/components/docs/sidebar.tsx` (mirror an existing block, e.g.
+   `kycRetailApis`/`kycRetailOpen`). This is the ONE allowed sidebar edit —
+   it's wiring a data group, not changing the design.
+3. Add the new group's row to the table above so the mapping stays current.
 
 ---
 

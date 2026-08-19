@@ -8,6 +8,8 @@ This file is loaded automatically in every session. Follow these rules without b
 
 B2B API documentation portal. Users are backend engineers and actuaries. Read `PRODUCT.md` for full context. Read `DESIGN.md` for design tokens, component specs, and anti-patterns.
 
+**Adding external (vendor) APIs:** the user uploads a vendor PDF into `External API/` and we build that API (Documentation + Tryout + proxy route) matching the **PAN Profile** implementation exactly. The full step-by-step process — every file to touch, field-by-field, plus the bugs to avoid — is in **`External API/CLAUDE.md`**. Read that playbook before onboarding any new API. Do NOT change the UI while doing so; the design is final, this is data + wiring only. Vendor is mostly **Karza/TKYC**; base URL is env-var driven (TEST by default, PDF shows PROD which is display-only).
+
 ---
 
 ## Stack
