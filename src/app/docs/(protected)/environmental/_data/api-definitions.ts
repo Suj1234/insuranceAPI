@@ -2,6 +2,8 @@ import { BASE_URL } from './introduction'
 import { PAN_PROFILE_VARIANTS } from './pan-profile-variants'
 import { PAN_STATUS_VARIANTS } from './pan-status-variants'
 import { PAN_DOB_STATUS_VARIANTS } from './pan-dob-status-variants'
+import { PAN_LINK_UNIQUE_CONSENT_VARIANTS } from './pan-link-unique-consent-variants'
+import { PAN_LINK_UNIQUE_CHECK_VARIANTS } from './pan-link-unique-check-variants'
 
 export type ParamIn = 'query' | 'header' | 'path' | 'body'
 export type SchemaType = 'string' | 'number' | 'integer' | 'boolean' | 'array' | 'object' | 'null'
@@ -1946,5 +1948,116 @@ export const API_DEFINITIONS: ApiDefinition[] = [
       },
     }, null, 2),
     variants: PAN_DOB_STATUS_VARIANTS,
+  },
+
+  // ── Verification (KYC) — PAN Link Status: Share Consent (TKYC) ──────────
+  {
+    id: 'verify-pan-link-unique-consent',
+    label: 'PAN Link Status (Consent)',
+    group: 'Verification (KYC)',
+    method: 'POST',
+    path: '/api/verify/pan-link-unique-consent',
+    shortDescription: 'Step 1 of 2 — share consent and receive an accessKey for the PAN-Aadhaar link check',
+    description:
+      'First step of the PAN Link Status (unique Aadhaar) flow. Captures the end user\'s consent and returns an ' +
+      'accessKey valid for 30 minutes. Pass that accessKey into "PAN Link Status (Check)" along with the PAN and ' +
+      'Aadhaar number to complete the check. The portal calls the verification provider on your behalf using ' +
+      'your credentials; you only send your platform API key.',
+    authNote: 'Pass your API key as the `x-api-key` request header. The vendor key is injected server-side.',
+    params: [
+      { name: 'x-api-key', in: 'header', required: true, type: 'string', description: 'Your platform API key', example: 'env_abc123...' },
+      { name: 'consent', in: 'body', required: true, type: 'string', description: 'Consent is required to make the API request.', example: 'Y', enum: ['Y', 'N'] },
+      { name: 'lat', in: 'body', required: false, type: 'string', description: 'Latitude details of the user sharing consent (either IP or lat/long required)', validation: { hint: 'Must be valid coordinates' } },
+      { name: 'long', in: 'body', required: false, type: 'string', description: 'Longitude details of the user sharing consent (either IP or lat/long required)', validation: { hint: 'Must be valid coordinates' } },
+      { name: 'ipAddress', in: 'body', required: false, type: 'string', description: 'IP address of the user sharing consent (either IP or lat/long required)', placeholder: '12.12.12.12', validation: { hint: 'A.B.C.D, each 0-255' } },
+      { name: 'userAgent', in: 'body', required: true, type: 'string', description: 'A string that lets servers and network peers identify the application, operating system, vendor, and/or version of the requesting user agent', validation: { maxLength: 256, hint: 'Max-length 256' } },
+      { name: 'deviceId', in: 'body', required: false, type: 'string', description: 'User Device ID details', validation: { maxLength: 200, hint: 'Max-length 200' } },
+      { name: 'deviceInfo', in: 'body', required: false, type: 'string', description: 'User Device Information', validation: { maxLength: 200, hint: 'Max-length 200' } },
+      { name: 'name', in: 'body', required: true, type: 'string', description: 'Name of the user sharing consent' },
+      { name: 'consentTime', in: 'body', required: true, type: 'string', description: 'Current Unix/Epoch Timestamp', validation: { hint: 'Must be valid epoch time not before 5 minutes from now' } },
+      { name: 'consentText', in: 'body', required: true, type: 'string', description: 'Consent body accepted by the user', validation: { maxLength: 10000, hint: 'Max-length 10000' } },
+      { name: 'clientData', in: 'body', required: true, type: 'object', description: 'Data of the user sharing consent' },
+      { name: 'clientData.caseId', in: 'body', required: true, type: 'string', description: 'Unique case id/lead id of the user sharing consent', validation: { maxLength: 200, hint: 'Max-length 200' } },
+    ],
+    responseFields: [
+      { field: 'data.statusCode', type: 'integer', required: true, description: 'Internal Status Code that denotes the status of the request.' },
+      { field: 'data.requestId', type: 'string', required: true, description: 'Unique id of the API request.' },
+      { field: 'data.result', type: 'object', required: true, description: 'Response object for the given inputs.' },
+      { field: 'data.result.accessKey', type: 'string', required: false, description: 'Access Key to invoke the next set of API/s' },
+      { field: 'data.result.accessKeyValidity', type: 'string', required: false, description: 'Validity of the unique access key in Unix/Epoch Timestamp format (valid for 30 minutes from shared consent timestamp)' },
+      { field: 'data.result.message', type: 'string', required: false, description: 'Message to display the status of consent capture' },
+      { field: 'data.clientData', type: 'object', required: true, description: 'Data of the user sharing consent (passed as is)' },
+      { field: 'data.clientData.caseId', type: 'string', required: true, description: 'Unique case id/lead id of the user sharing consent' },
+    ],
+    exampleRequest: {
+      body: JSON.stringify({
+        lat: '19', long: '82', ipAddress: '12.12.12.12',
+        userAgent: 'Mozilla/5.0 (X11; Fedora; Linux x86_64; rv:80.0) Gecko/20100101 Firefox/80.0',
+        deviceId: 'xxxx', deviceInfo: '1234', consent: 'Y', name: 'Rahul Kumar',
+        consentTime: '1612442987', consentText: 'Customer consent body to be shared here',
+        clientData: { caseId: '123456' },
+      }, null, 2),
+    },
+    exampleResponse: JSON.stringify({
+      success: true,
+      data: {
+        result: { accessKey: '2cc1610c-3f25-4695-9d7c-4e391758898c', accessKeyValidity: '1612446446', message: 'Consent Accepted' },
+        statusCode: 101,
+        requestId: '2cc1610c-3f25-4695-9d7c-4e391758898c',
+        clientData: { caseId: '123456' },
+      },
+    }, null, 2),
+    variants: PAN_LINK_UNIQUE_CONSENT_VARIANTS,
+  },
+
+  // ── Verification (KYC) — PAN Link Status: Check (TKYC) ───────────────────
+  {
+    id: 'verify-pan-link-unique-check',
+    label: 'PAN Link Status (Check)',
+    group: 'Verification (KYC)',
+    method: 'POST',
+    path: '/api/verify/pan-link-unique-check',
+    shortDescription: 'Step 2 of 2 — check whether a PAN is linked to a specific Aadhaar number',
+    description:
+      'Second step of the PAN Link Status (unique Aadhaar) flow. Requires the accessKey returned by "PAN Link ' +
+      'Status (Consent)", plus the PAN and Aadhaar number, and returns whether that PAN is linked to that ' +
+      'specific Aadhaar. The portal calls the verification provider on your behalf using your credentials; you ' +
+      'only send your platform API key.',
+    authNote: 'Pass your API key as the `x-api-key` request header. The vendor key is injected server-side.',
+    params: [
+      { name: 'x-api-key', in: 'header', required: true, type: 'string', description: 'Your platform API key', example: 'env_abc123...' },
+      { name: 'consent', in: 'body', required: true, type: 'string', description: 'Consent is required to make the API request.', example: 'Y', enum: ['Y', 'N'] },
+      { name: 'pan', in: 'body', required: true, type: 'string', label: 'PAN Number', uppercase: true, placeholder: 'ABCDE1234F', description: 'PAN number of the user', validation: { minLength: 10, maxLength: 10, pattern: '^[A-Za-z]{5}\\d{4}[A-Za-z]{1}$', hint: '5 letters, 4 digits, 1 letter' } },
+      { name: 'aadhaarNo', in: 'body', required: true, type: 'string', label: 'Aadhaar Number', placeholder: '123456789012', description: '12 digit Aadhaar Number of the user', validation: { minLength: 12, maxLength: 12, pattern: '^[0-9]{12}$', hint: '12 digits' } },
+      { name: 'accessKey', in: 'body', required: true, type: 'string', description: 'Access Key to invoke the next set of API/s (from the Share Consent step)' },
+      { name: 'clientData', in: 'body', required: true, type: 'object', description: 'Data of the user sharing consent (passed as is)' },
+      { name: 'clientData.caseId', in: 'body', required: true, type: 'string', description: 'Unique case id/lead id of the user sharing consent', validation: { maxLength: 200, hint: 'Max-length 200' } },
+    ],
+    responseFields: [
+      { field: 'data.statusCode', type: 'integer', required: true, description: 'Internal Status Code that denotes the status of the request.' },
+      { field: 'data.requestId', type: 'string', required: true, description: 'Unique id of the API request.' },
+      { field: 'data.result', type: 'object', required: true, description: 'Response object for the given inputs.' },
+      { field: 'data.result.message', type: 'string', required: false, description: 'Message that describes whether PAN is linked to Aadhaar Number' },
+      { field: 'data.result.linked', type: 'boolean', required: false, description: 'Status whether PAN is linked or not (True/False)' },
+      { field: 'data.clientData', type: 'object', required: true, description: 'Data of the user sharing consent (passed as is)' },
+      { field: 'data.clientData.caseId', type: 'string', required: true, description: 'Unique case id/lead id of the user sharing consent' },
+    ],
+    exampleRequest: {
+      body: JSON.stringify({
+        pan: 'BXXXXXXXXR', aadhaarNo: 'xxxxxxxx6917', consent: 'Y',
+        accessKey: '5d08f3a0-3a5c-43e4-a4af-1d496bd18cdc',
+        clientData: { caseId: '123456' },
+      }, null, 2),
+    },
+    exampleResponse: JSON.stringify({
+      success: true,
+      data: {
+        requestId: '5c42f558-e193-4ffc-baaf-591383ccbac7',
+        result: { message: 'Your PAN is linked to Aadhaar Number XXXX XXXX 6917', linked: true },
+        statusCode: 101,
+        clientData: { caseId: '123456' },
+      },
+    }, null, 2),
+    variants: PAN_LINK_UNIQUE_CHECK_VARIANTS,
   },
 ]

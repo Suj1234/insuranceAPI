@@ -23,6 +23,12 @@ export const KARZA_PAN_STATUS_PATH = '/v2/pan-authentication'
 /** PAN DOB Status (basic profile) endpoint path on the vendor. */
 export const KARZA_PAN_DOB_STATUS_PATH = '/v3/pan-profile-basic'
 
+/** PAN Link Status (unique Aadhaar) — step 1: share consent, get accessKey. */
+export const KARZA_PAN_LINK_UNIQUE_CONSENT_PATH = '/v3/aadhaar-consent'
+
+/** PAN Link Status (unique Aadhaar) — step 2: check PAN-Aadhaar link using accessKey. */
+export const KARZA_PAN_LINK_UNIQUE_CHECK_PATH = '/v3/pan-aadhaar-link'
+
 /**
  * Fields in the PAN request/response that are PII and must never be logged raw.
  * Used by the redactor before writing api_call_logs.
@@ -30,9 +36,12 @@ export const KARZA_PAN_DOB_STATUS_PATH = '/v3/pan-profile-basic'
 export const PAN_PII_FIELDS = [
   'pan',
   'aadhaarLastFour',
+  'aadhaarNo',
   'dob',
   'name',
   'address',
+  'ipAddress',
+  'accessKey',
 ] as const
 
 /**

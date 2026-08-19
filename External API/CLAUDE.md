@@ -36,7 +36,7 @@ PDFs will be added over time** — that's expected; step 1 absorbs them.
 | 0 | PAN Profile (Detailed) | verify-pan | DONE ✅ | reference implementation |
 | 1 | PAN Status | verify-pan-status | DONE ✅ | 2026-08-19 · single scenario; nested clientData |
 | 2 | PAN DOB Status | verify-pan-dob-status | DONE ✅ | 2026-08-19 · single scenario; no name/dob validation fields (unlike PAN Status) |
-| 3 | PAN Link Status (with unique Aadhaar) | verify-pan-link-unique | TODO | |
+| 3 | PAN Link Status (with unique Aadhaar) | verify-pan-link-unique-consent, verify-pan-link-unique-check | DONE ✅ | 2026-08-19 · 2-step vendor flow (consent → accessKey → link check), split into 2 sidebar entries/routes since Tryout is one-call-per-definition; user copies accessKey from step 1 into step 2 |
 | 4 | PAN Link Status (with any Aadhaar) | verify-pan-link-any | TODO | |
 | 5 | Bank AC Verification Advanced | verify-bank-ac-advanced | TODO | |
 | 6 | Silent Bank Account Verification | verify-bank-ac-silent | TODO | |
