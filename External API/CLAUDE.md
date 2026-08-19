@@ -48,7 +48,7 @@ PDFs will be added over time** — that's expected; step 1 absorbs them.
 | 12 | GST Authentication | verify-gst | DONE ✅ | 2026-08-19 · 2 scenarios (additionalData true/false) as variants[] |
 | 13 | GST Advanced | verify-gst-advanced | DONE ✅ | 2026-08-19 · 2 scenarios (liabilityDetails true/false); result[] array of GSTIN entries with nested profile+filingStatus, shared field-tree helper (gstinEntryFields) to avoid duplicating ~50 nested paths |
 | 14 | GST Search Basis PAN | verify-gst-by-pan | DONE ✅ | 2026-08-19 · single scenario; lightweight GSTIN-lookup counterpart to GST Advanced |
-| 15 | MCA Signatories | verify-mca-signatories | TODO | |
+| 15 | MCA Signatories | verify-mca-signatories | DONE ✅ | 2026-08-19 · single scenario; response uses status-code/request_id (snake-case) not statusCode/requestId |
 | 16 | Udyog Aadhar Number | verify-udyog-aadhaar | TODO | |
 | 17 | Employment Verification Advanced (PAN Flow) | verify-employment-advanced | TODO | |
 | 18 | Digital FootPrint (Mobile) | verify-footprint-mobile | TODO | |

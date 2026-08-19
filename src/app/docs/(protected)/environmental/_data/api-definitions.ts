@@ -13,6 +13,7 @@ import { RC_ADVANCED_VARIANTS } from './rc-advanced-variants'
 import { GST_VARIANTS } from './gst-variants'
 import { GST_ADVANCED_VARIANTS, gstinEntryFields } from './gst-advanced-variants'
 import { GST_BY_PAN_VARIANTS } from './gst-by-pan-variants'
+import { MCA_SIGNATORIES_VARIANTS } from './mca-signatories-variants'
 
 export type ParamIn = 'query' | 'header' | 'path' | 'body'
 export type SchemaType = 'string' | 'number' | 'integer' | 'boolean' | 'array' | 'object' | 'null'
@@ -2845,5 +2846,61 @@ export const API_DEFINITIONS: ApiDefinition[] = [
       },
     }, null, 2),
     variants: GST_BY_PAN_VARIANTS,
+  },
+
+  // ── Verification (KYC) — MCA Signatories (TKYC) ───────────────────────────
+  {
+    id: 'verify-mca-signatories',
+    label: 'MCA Signatories',
+    group: 'Verification (KYC)',
+    method: 'POST',
+    path: '/api/verify/mca-signatories',
+    shortDescription: 'Authenticate directors/partners of a company or LLP by CIN/LLPIN',
+    description:
+      'Authenticates the directors/partners of a company or LLP using the CIN (Company Identification Number) or ' +
+      'LLPIN issued by the Ministry of Corporate Affairs (MCA), returning each signatory\'s name, designation, ' +
+      'DIN/DPIN/PAN, address, appointment date, and Digital Signature Certificate status. The portal calls the ' +
+      'verification provider on your behalf using your credentials; you only send your platform API key.',
+    authNote: 'Pass your API key as the `x-api-key` request header. The vendor key is injected server-side.',
+    params: [
+      { name: 'x-api-key', in: 'header', required: true, type: 'string', description: 'Your platform API key', example: 'env_abc123...' },
+      { name: 'consent', in: 'body', required: true, type: 'string', description: 'Consent is required to make the API request.', example: 'Y', enum: ['Y', 'N'] },
+      { name: 'cin', in: 'body', required: true, type: 'string', label: 'CIN / LLPIN', uppercase: true, placeholder: 'AAA-1234', description: '15 character Company Identification Number or 8 character LLPIN issued by the Ministry of Corporate Affairs (MCA)', validation: { minLength: 21, maxLength: 21, hint: '21 chars' } },
+      { name: 'clientData', in: 'body', required: false, type: 'object', description: 'Data of the user sharing consent' },
+      { name: 'clientData.caseId', in: 'body', required: false, type: 'string', description: 'Unique case id/lead id of the user sharing consent', validation: { maxLength: 200, hint: 'Max-length 200' } },
+    ],
+    responseFields: [
+      { field: 'data.status-code', type: 'string', required: true, description: 'Internal Status Code that denotes the status of the request.' },
+      { field: 'data.request_id', type: 'string', required: true, description: 'Unique ID of the API request.' },
+      { field: 'data.result', type: 'array', required: false, description: 'List of directors/partners.' },
+      { field: 'data.result[].date_of_appointment', type: 'string', required: false, description: 'Date of Appointment of director/partner' },
+      { field: 'data.result[].designation', type: 'string', required: false, description: 'Designation of director/partner' },
+      { field: 'data.result[].dsc_expiry_date', type: 'string', required: false, description: 'Expiry date of Digital Signature Certificate of director/partner' },
+      { field: 'data.result[].address', type: 'string', required: false, description: 'Address of director/partner' },
+      { field: 'data.result[].DIN/DPIN/PAN', type: 'string', required: false, description: 'DIN/DPIN/PAN of director/partner' },
+      { field: 'data.result[].full_name', type: 'string', required: false, description: 'Full Name of director/partner' },
+      { field: 'data.result[].wheather_dsc_registered', type: 'string', required: false, description: 'Whether DSC registered' },
+      { field: 'data.clientData', type: 'object', required: true, description: 'Data of the user sharing consent' },
+      { field: 'data.clientData.caseId', type: 'string', required: true, description: 'Unique case id/lead id of the user sharing consent' },
+    ],
+    exampleRequest: {
+      body: JSON.stringify({ consent: 'Y', cin: 'AAA-1234', clientData: { caseId: '123456' } }, null, 2),
+    },
+    exampleResponse: JSON.stringify({
+      success: true,
+      data: {
+        'status-code': '101',
+        request_id: '8e236fe9-d8fa-11e7-8bbb-5f3dd11329a1',
+        result: [
+          {
+            date_of_appointment: '28/04/2010', designation: 'Designated Partner', dsc_expiry_date: '05/10/2019',
+            address: 'NIRMAL ANAND CO OP HSG SOC. FLAT NO. 5 A-WING 2ND FLOOR J.P.ROAD ANDHERI WEST MUMBAI 400058',
+            'DIN/DPIN/PAN': '05005591', full_name: 'GADA JITENDRA RAGHAVJI', wheather_dsc_registered: 'Yes',
+          },
+        ],
+        clientData: { caseId: '123456' },
+      },
+    }, null, 2),
+    variants: MCA_SIGNATORIES_VARIANTS,
   },
 ]
