@@ -19,6 +19,7 @@ import { EMPLOYMENT_ADVANCED_VARIANTS, employmentAdvancedResponseFields } from '
 import { DIGITAL_FOOTPRINT_MOBILE_VARIANTS } from './digital-footprint-mobile-variants'
 import { DIGITAL_FOOTPRINT_EMAIL_VARIANTS } from './digital-footprint-email-variants'
 import { EMAIL_FRAUD_VARIANTS, emailFraudResponseFields } from './email-fraud-variants'
+import { MOBILE_PREFILL_VARIANTS } from './mobile-prefill-variants'
 
 export type ParamIn = 'query' | 'header' | 'path' | 'body'
 export type SchemaType = 'string' | 'number' | 'integer' | 'boolean' | 'array' | 'object' | 'null'
@@ -3266,5 +3267,72 @@ export const API_DEFINITIONS: ApiDefinition[] = [
       },
     }, null, 2),
     variants: EMAIL_FRAUD_VARIANTS,
+  },
+
+  // ── Verification (KYC) — Mobile to Form Prefill (TKYC) ────────────────────
+  {
+    id: 'verify-mobile-prefill',
+    label: 'Mobile to Form Prefill',
+    group: 'Verification (KYC)',
+    method: 'POST',
+    path: '/api/verify/mobile-prefill',
+    shortDescription: "Prefill customer PAN and identity details using just a mobile number",
+    description:
+      "Prefills customer information — PAN number, name, split name, address, gender, date of birth, and " +
+      "Aadhaar-PAN link status — using only a mobile number. Useful for speeding up onboarding forms. The portal " +
+      "calls the verification provider on your behalf using your credentials; you only send your platform API key.",
+    authNote: 'Pass your API key as the `x-api-key` request header. The vendor key is injected server-side.',
+    params: [
+      { name: 'x-api-key', in: 'header', required: true, type: 'string', description: 'Your platform API key', example: 'env_abc123...' },
+      { name: 'consent', in: 'body', required: true, type: 'string', description: 'Consent is required to make the API request.', example: 'Y', enum: ['Y', 'N'] },
+      { name: 'mobile', in: 'body', required: true, type: 'string', label: 'Mobile Number', placeholder: '9876543210', description: '10 Digit mobile number', validation: { hint: '10 digits' } },
+      { name: 'clientData', in: 'body', required: false, type: 'object', description: 'Data of the user sharing consent' },
+      { name: 'clientData.caseId', in: 'body', required: false, type: 'string', description: 'Unique case id/lead id of the user sharing consent', validation: { maxLength: 200, hint: 'Max-length 200' } },
+    ],
+    responseFields: [
+      { field: 'data.statusCode', type: 'integer', required: true, description: 'Internal Status Code that denotes the status of the request.' },
+      { field: 'data.requestId', type: 'string', required: true, description: 'Unique id of the API request.' },
+      { field: 'data.result', type: 'object', required: true, description: 'Response object for the given inputs.' },
+      { field: 'data.result.mobileNumber', type: 'string', required: false, description: 'Mobile Number' },
+      { field: 'data.result.pan', type: 'string', required: false, description: 'PAN Number' },
+      { field: 'data.result.panDetails', type: 'object', required: false, description: 'PAN Details' },
+      { field: 'data.result.panDetails.fullName', type: 'string', required: false, description: 'Full name of PAN card holder' },
+      { field: 'data.result.panDetails.splitName', type: 'array', required: false, description: 'Split Name of PAN card holder' },
+      { field: 'data.result.panDetails.address', type: 'object', required: false, description: 'Address as per PAN card' },
+      { field: 'data.result.panDetails.address.line_1', type: 'string', required: false, description: 'Address line 1' },
+      { field: 'data.result.panDetails.address.line_2', type: 'string', required: false, description: 'Address line 2' },
+      { field: 'data.result.panDetails.address.street_name', type: 'string', required: false, description: 'Street Location as on the Address' },
+      { field: 'data.result.panDetails.address.zip', type: 'string', required: false, description: 'Zip code as on the Address' },
+      { field: 'data.result.panDetails.address.city', type: 'string', required: false, description: 'City as on the Address' },
+      { field: 'data.result.panDetails.address.state', type: 'string', required: false, description: 'State as on the Address' },
+      { field: 'data.result.panDetails.address.country', type: 'string', required: false, description: 'Country as on the Address' },
+      { field: 'data.result.panDetails.address.full', type: 'string', required: false, description: 'Complete address as per PAN card' },
+      { field: 'data.result.panDetails.gender', type: 'string', required: false, description: 'Gender as per PAN card' },
+      { field: 'data.result.panDetails.dob', type: 'string', required: false, description: 'Date of Birth as per PAN card' },
+      { field: 'data.result.panDetails.aadhaarLink', type: 'boolean', required: false, description: 'Aadhaar PAN link status (true/false)' },
+      { field: 'data.clientData', type: 'object', required: true, description: 'Data of the user sharing consent' },
+      { field: 'data.clientData.caseId', type: 'string', required: true, description: 'Unique case id/lead id of the user sharing consent' },
+    ],
+    exampleRequest: {
+      body: JSON.stringify({ mobile: '1111111111', consent: 'Y', clientData: { caseId: '123456' } }, null, 2),
+    },
+    exampleResponse: JSON.stringify({
+      success: true,
+      data: {
+        requestId: 'b5ab0b36-dd17-4b8b-a5a9-982fa3ea92a9',
+        result: {
+          mobileNumber: '1111111111',
+          pan: 'ABCDE1234E',
+          panDetails: {
+            fullName: 'ABC', splitName: ['A', 'B', 'C'],
+            address: { line_1: '', line_2: '', street_name: '', zip: '', city: '', state: '', country: '', full: '' },
+            gender: 'M', dob: '1996-05-10', aadhaarLink: true,
+          },
+        },
+        statusCode: 101,
+        clientData: { caseId: '123456' },
+      },
+    }, null, 2),
+    variants: MOBILE_PREFILL_VARIANTS,
   },
 ]

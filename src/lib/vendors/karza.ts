@@ -74,6 +74,9 @@ export const KARZA_DIGITAL_FOOTPRINT_EMAIL_PATH = '/v3/digitalfootprint/email'
 /** Email Fraud Check endpoint path on the vendor. */
 export const KARZA_EMAIL_FRAUD_PATH = '/v3/email-fraud'
 
+/** Mobile to Form Prefill endpoint path on the vendor. */
+export const KARZA_MOBILE_PREFILL_PATH = '/v3/mobile-form-prefill'
+
 /**
  * Fields in the PAN request/response that are PII and must never be logged raw.
  * Used by the redactor before writing api_call_logs.
@@ -131,6 +134,8 @@ export const PAN_PII_FIELDS = [
   'ipAddress',
   'firstName',
   'lastName',
+  'fullName',
+  'splitName',
 ] as const
 
 /**

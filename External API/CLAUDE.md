@@ -54,7 +54,7 @@ PDFs will be added over time** — that's expected; step 1 absorbs them.
 | 18 | Digital FootPrint (Mobile) | verify-footprint-mobile | DONE ✅ | 2026-08-19 · single scenario; risk score + digital presence + network details |
 | 19 | Digital Foot Print (Email) | verify-footprint-email | DONE ✅ | 2026-08-19 · single scenario; risk score + digital presence + mailbox validity checks |
 | 20 | Email Fraud Check | verify-email-fraud | DONE ✅ | 2026-08-19 · single scenario; result[] array with owner/domain/social/risk/IP breakdown; shared field-tree helper |
-| 21 | Mobile to Form Prefill | verify-mobile-prefill | TODO | |
+| 21 | Mobile to Form Prefill | verify-mobile-prefill | DONE ✅ | 2026-08-19 · single scenario; PAN details prefilled from mobile number only |
 
 > New PDFs added later are picked up automatically via step 1 (re-scan the
 > folder, append missing ones as `TODO`). The `slug` is a suggestion; confirm
