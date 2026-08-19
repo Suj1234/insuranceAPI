@@ -35,6 +35,9 @@ export const KARZA_PAN_LINK_ANY_PATH = '/v3/pan-link'
 /** Bank AC Verification Advanced endpoint path on the vendor. */
 export const KARZA_BANK_AC_ADVANCED_PATH = '/v3/bankacc-verification'
 
+/** Silent Bank Account Verification (non-penny) endpoint path on the vendor. */
+export const KARZA_BANK_AC_SILENT_PATH = '/v3/bankacc-verification-non-penny'
+
 /**
  * Fields in the PAN request/response that are PII and must never be logged raw.
  * Used by the redactor before writing api_call_logs.

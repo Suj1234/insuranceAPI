@@ -6,6 +6,7 @@ import { PAN_LINK_UNIQUE_CONSENT_VARIANTS } from './pan-link-unique-consent-vari
 import { PAN_LINK_UNIQUE_CHECK_VARIANTS } from './pan-link-unique-check-variants'
 import { PAN_LINK_ANY_VARIANTS } from './pan-link-any-variants'
 import { BANK_AC_ADVANCED_VARIANTS } from './bank-ac-advanced-variants'
+import { BANK_AC_SILENT_VARIANTS } from './bank-ac-silent-variants'
 
 export type ParamIn = 'query' | 'header' | 'path' | 'body'
 export type SchemaType = 'string' | 'number' | 'integer' | 'boolean' | 'array' | 'object' | 'null'
@@ -2224,5 +2225,107 @@ export const API_DEFINITIONS: ApiDefinition[] = [
       },
     }, null, 2),
     variants: BANK_AC_ADVANCED_VARIANTS,
+  },
+
+  // ── Verification (KYC) — Silent Bank Account Verification (TKYC) ─────────
+  {
+    id: 'verify-bank-ac-silent',
+    label: 'Silent Bank Account Verification',
+    group: 'Verification (KYC)',
+    method: 'POST',
+    path: '/api/verify/bank-ac-silent',
+    shortDescription: 'Verify a bank account via a non-penny NPCI verification call (no funds moved)',
+    description:
+      'Verifies the Bank Account information of an entity by performing a verification call to the given Bank ' +
+      'Account and reading the response received from NPCI — this is a non-penny based solution, so no funds are ' +
+      'moved. The portal calls the verification provider on your behalf using your credentials; you only send ' +
+      'your platform API key.',
+    authNote: 'Pass your API key as the `x-api-key` request header. The vendor key is injected server-side.',
+    params: [
+      { name: 'x-api-key', in: 'header', required: true, type: 'string', description: 'Your platform API key', example: 'env_abc123...' },
+      { name: 'consent', in: 'body', required: true, type: 'string', description: 'Consent is required to make the API request.', example: 'Y', enum: ['Y', 'N'] },
+      { name: 'accountNumber', in: 'body', required: true, type: 'string', description: 'Account number of the bank account to be verified', validation: { minLength: 5, maxLength: 25, pattern: '^[a-zA-Z0-9]+$', hint: 'alphanumeric, 5-25 chars' } },
+      { name: 'accountHolderName', in: 'body', required: false, type: 'string', description: 'Name of the account holder whose account is being verified', validation: { pattern: "^[a-zA-Z0-9&,-/()_'. ]+$", hint: 'letters, numbers, and & , - / ( ) _ \' .' } },
+      { name: 'ifsc', in: 'body', required: true, type: 'string', label: 'IFSC Code', uppercase: true, description: 'IFSC of the bank branch to which the account belongs', validation: { pattern: '^[\\w]{4}0[\\w|\\d]{6}$', hint: '4 chars, 0, 6 chars/digits' } },
+      { name: 'nameMatchType', in: 'body', required: false, type: 'string', description: 'Whether the account holder is an individual or an entity', enum: ['individual', 'entity'] },
+      { name: 'allowPartialMatch', in: 'body', required: false, type: 'boolean', description: 'To allow partial name match algorithm' },
+      { name: 'preset', in: 'body', required: false, type: 'string', description: 'Strictness level of matching', example: 'S', validation: { hint: 'G (General), L (Lenient), S (Strict); default G' } },
+      { name: 'suppressReorderPenalty', in: 'body', required: false, type: 'boolean', description: 'To suppress reordering of name token' },
+      { name: 'clientData', in: 'body', required: false, type: 'object', description: 'Data of the user sharing consent' },
+      { name: 'clientData.caseId', in: 'body', required: false, type: 'string', description: 'Unique case id/lead id of the user sharing consent', validation: { maxLength: 200, hint: 'Max-length 200' } },
+    ],
+    responseFields: [
+      { field: 'data.statusCode', type: 'integer', required: true, description: 'Internal Status Code that denotes the status of the request.' },
+      { field: 'data.requestId', type: 'string', required: true, description: 'Unique id of the API request.' },
+      { field: 'data.result', type: 'object', required: true, description: 'Response object for the given inputs.' },
+      { field: 'data.result.data', type: 'object', required: false, description: 'Response data for the given inputs' },
+      { field: 'data.result.data.source', type: 'array', required: false, description: 'Data as per source for the given inputs' },
+      { field: 'data.result.data.source[].statusAsPerSource', type: 'string', required: false, description: 'Validity Status as per source' },
+      { field: 'data.result.data.source[].data', type: 'object', required: false, description: 'Response data from source' },
+      { field: 'data.result.data.source[].data.bankTxnStatus', type: 'boolean', required: false, description: 'Bank Transaction Status' },
+      { field: 'data.result.data.source[].data.accountNumber', type: 'string', required: false, description: 'Provided account number' },
+      { field: 'data.result.data.source[].data.ifsc', type: 'string', required: false, description: 'Provided IFSC code' },
+      { field: 'data.result.data.source[].data.accountName', type: 'string', required: true, description: 'Name of the account holder' },
+      { field: 'data.result.data.source[].data.bankResponse', type: 'string', required: true, description: 'Bank response for the transaction' },
+      { field: 'data.result.data.source[].data.bankRRN', type: 'string', required: true, description: 'Bank RRN for the transaction' },
+      { field: 'data.result.data.source[].data.statusCode', type: 'string', required: false, description: 'Internal Status Code that denotes the status of the request.' },
+      { field: 'data.result.data.source[].isValid', type: 'boolean', required: false, description: 'Validity Status' },
+      { field: 'data.result.comparisonData', type: 'object', required: false, description: 'Comparison Data' },
+      { field: 'data.result.comparisonData.inputVsSource', type: 'object', required: false, description: 'Comparison of Input vs Source data' },
+      { field: 'data.result.comparisonData.inputVsSource.flags', type: 'object', required: false, description: 'Flags from Comparison data' },
+      { field: 'data.result.comparisonData.inputVsSource.flags.accountHolderName', type: 'object', required: false, description: 'Comparison Results against Account Holder Name' },
+      { field: 'data.result.comparisonData.inputVsSource.flags.accountHolderName.score', type: 'integer', required: false, description: 'Name Match Score' },
+      { field: 'data.result.comparisonData.inputVsSource.flags.accountHolderName.result', type: 'boolean', required: true, description: 'Name Match Result' },
+      { field: 'data.result.comparisonData.inputVsSource.validity', type: 'string', required: false, description: 'Validity Status as per comparison' },
+      { field: 'data.clientData', type: 'object', required: true, description: 'Data of the user sharing consent' },
+      { field: 'data.clientData.caseId', type: 'string', required: true, description: 'Unique case id/lead id of the user sharing consent' },
+    ],
+    exampleRequest: {
+      body: JSON.stringify({
+        accountNumber: '501xxxxxxxx679',
+        accountHolderName: '',
+        ifsc: 'HDFCxxxx810',
+        consent: 'Y',
+        nameMatchType: '',
+        allowPartialMatch: true,
+        preset: 'S',
+        suppressReorderPenalty: true,
+        clientData: { caseId: '123456' },
+      }, null, 2),
+    },
+    exampleResponse: JSON.stringify({
+      success: true,
+      data: {
+        statusCode: 101,
+        requestId: '118b29e8-d7de-410c-98cf-a0849252e7ec',
+        result: {
+          data: {
+            source: [
+              {
+                statusAsPerSource: 'VALID',
+                data: {
+                  bankTxnStatus: true,
+                  accountNumber: '501xxxxxxxx679',
+                  ifsc: 'HDFCxxxx810',
+                  accountName: 'PERFIOS SOFTWARE SOLUTIONS PRIVATE LIMITED',
+                  bankResponse: 'SUCCESSFUL TRANSACTION',
+                  bankRRN: '214718512903',
+                  statusCode: 'KC01',
+                },
+                isValid: true,
+              },
+            ],
+          },
+          comparisonData: {
+            inputVsSource: {
+              flags: { accountHolderName: { score: 1, result: true } },
+              validity: 'VALID',
+            },
+          },
+        },
+        clientData: { caseId: '123456' },
+      },
+    }, null, 2),
+    variants: BANK_AC_SILENT_VARIANTS,
   },
 ]
