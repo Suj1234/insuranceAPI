@@ -50,6 +50,9 @@ export const KARZA_RC_ADVANCED_PATH = '/v3/rc-advanced'
 /** GST Authentication endpoint path on the vendor. */
 export const KARZA_GST_PATH = '/gst/prod/v2/gstdetailed'
 
+/** GST Advanced (PAN to all GSTINs + profile + filing history) endpoint path on the vendor. */
+export const KARZA_GST_ADVANCED_PATH = '/gst/prod/v2/gst-advanced'
+
 /**
  * Fields in the PAN request/response that are PII and must never be logged raw.
  * Used by the redactor before writing api_call_logs.
@@ -88,6 +91,8 @@ export const PAN_PII_FIELDS = [
   'email',
   'lgnm',
   'tradeNam',
+  'emailId',
+  'gstinId',
 ] as const
 
 /**

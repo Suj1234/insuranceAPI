@@ -11,6 +11,7 @@ import { DL_VARIANTS } from './dl-variants'
 import { PASSPORT_VARIANTS } from './passport-variants'
 import { RC_ADVANCED_VARIANTS } from './rc-advanced-variants'
 import { GST_VARIANTS } from './gst-variants'
+import { GST_ADVANCED_VARIANTS, gstinEntryFields } from './gst-advanced-variants'
 
 export type ParamIn = 'query' | 'header' | 'path' | 'body'
 export type SchemaType = 'string' | 'number' | 'integer' | 'boolean' | 'array' | 'object' | 'null'
@@ -2722,5 +2723,70 @@ export const API_DEFINITIONS: ApiDefinition[] = [
       },
     }, null, 2),
     variants: GST_VARIANTS,
+  },
+
+  // ── Verification (KYC) — GST Advanced (TKYC) ──────────────────────────────
+  {
+    id: 'verify-gst-advanced',
+    label: 'GST Advanced',
+    group: 'Verification (KYC)',
+    method: 'POST',
+    path: '/api/verify/gst-advanced',
+    shortDescription: "Identify all GSTINs linked to a PAN and fetch each one's profile and return filing history",
+    description:
+      "Identifies all GSTINs related to an entity's PAN, then fetches profile information and return filing " +
+      "history for each Active GSTIN. When `liabilityDetails` is true, also returns the percentage of GST " +
+      "liability paid through GSTR-3B returns per financial year. Optionally filter by `stateCode` to limit which " +
+      "GSTINs are fetched (recommended when a PAN has 20+ GSTINs, to avoid timeouts). The portal calls the " +
+      "verification provider on your behalf using your credentials; you only send your platform API key.",
+    authNote: 'Pass your API key as the `x-api-key` request header. The vendor key is injected server-side.',
+    params: [
+      { name: 'x-api-key', in: 'header', required: true, type: 'string', description: 'Your platform API key', example: 'env_abc123...' },
+      { name: 'consent', in: 'body', required: true, type: 'string', description: 'Consent is required to make the API request', example: 'Y', enum: ['Y', 'N'] },
+      { name: 'pan', in: 'body', required: true, type: 'string', label: 'PAN Number', uppercase: true, placeholder: 'AAECP3450G', description: 'PAN to be authenticated', validation: { pattern: '^[A-Za-z]{5}\\d{4}[A-Za-z]{1}$', hint: '5 letters, 4 digits, 1 letter' } },
+      { name: 'liabilityDetails', in: 'body', required: false, type: 'boolean', description: 'Optional parameter to fetch percentage liabilities paid via GSTR-3B' },
+      { name: 'stateCode', in: 'body', required: false, type: 'array', description: "List of State Codes for which GSTIN's have to be fetched", validation: { pattern: '^\\d{2}$', hint: '2-digit codes, e.g. 29, 19' } },
+      { name: 'clientData', in: 'body', required: false, type: 'object', description: 'Data of the user sharing consent' },
+      { name: 'clientData.caseId', in: 'body', required: false, type: 'string', description: 'Unique case id/lead id of the user sharing consent', validation: { maxLength: 200, hint: 'Max-length 200' } },
+    ],
+    responseFields: [
+      { field: 'data.statusCode', type: 'integer', required: true, description: 'Internal Status Code that denotes the status of the request' },
+      { field: 'data.requestId', type: 'string', required: true, description: 'Unique id of the API request' },
+      { field: 'data.result', type: 'array', required: true, description: 'Response object for the given inputs — one entry per GSTIN found for the PAN' },
+      ...gstinEntryFields('data.result[].'),
+      { field: 'data.clientData', type: 'object', required: true, description: 'Data of the user sharing consent' },
+      { field: 'data.clientData.caseId', type: 'string', required: true, description: 'Unique case id/lead id of the user sharing consent' },
+    ],
+    exampleRequest: {
+      body: JSON.stringify({ pan: 'AAECP3450G', consent: 'Y', liabilityDetails: true, stateCode: ['29', '19', '33'], clientData: { caseId: '123456' } }, null, 2),
+    },
+    exampleResponse: JSON.stringify({
+      success: true,
+      data: {
+        requestId: '66eb3e64-6fe2-458d-a6c7-e8178535e0cd',
+        result: [
+          { authStatus: 'Inactive', applicationStatus: '', emailId: '', gstinId: '19AAECP3450G1ZG', gstinRefId: '', mobNum: '', pan: 'AAECP3450G', regType: '', registrationName: '', tinNumber: '', profile: {}, filingStatus: {} },
+          {
+            authStatus: 'Active', applicationStatus: '', emailId: '', gstinId: '29AAECP3450G1ZF', gstinRefId: '', mobNum: '', pan: 'AAECP3450G', regType: '', registrationName: '', tinNumber: '',
+            profile: {
+              stjCd: 'KA012', dty: 'Regular', stj: 'LGSTO 045 - Bengaluru', lgnm: 'SINGULARITY FURNITURE PRIVATE LIMITED',
+              gstin: '29AAECP3450G1ZF', tradeNam: 'SINGULARITY FURNITURE PRIVATE LIMITED', sts: 'Active',
+            },
+            filingStatus: {
+              gstin: '29AAECP3450G1ZF',
+              complianceStatus: { isAnyDelay: true, isDefaulter: false },
+              result: [{
+                eFiledlist: [{ valid: 'Y', mof: 'ONLINE', dof: '24-08-2021', retPrd: '042021', rtntype: 'GSTR3B', arn: 'AB2904211618913', status: 'Filed', dueDt: '2021-05-20', isDelay: true, delayDays: 96, liabPct: 100 }],
+                financialYear: '2021-22',
+                fyLiabPaidTotal: 105,
+              }],
+            },
+          },
+        ],
+        statusCode: 101,
+        clientData: { caseId: '123456' },
+      },
+    }, null, 2),
+    variants: GST_ADVANCED_VARIANTS,
   },
 ]
