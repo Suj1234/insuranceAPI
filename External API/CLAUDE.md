@@ -51,7 +51,7 @@ PDFs will be added over time** — that's expected; step 1 absorbs them.
 | 15 | MCA Signatories | verify-mca-signatories | DONE ✅ | 2026-08-19 · single scenario; response uses status-code/request_id (snake-case) not statusCode/requestId |
 | 16 | Udyog Aadhar Number | verify-udyog-aadhaar | DONE ✅ | 2026-08-19 · single scenario; flat response, snake-case status-code/request_id |
 | 17 | Employment Verification Advanced (PAN Flow) | verify-employment-advanced | DONE ✅ | 2026-08-19 · single scenario but deep nesting (email/nameLookup/uan/personalInfo/summary); Sync but 290s timeout (not the usual 30s) — route.ts VENDOR_TIMEOUT_MS raised accordingly; shared field-tree helper like GST Advanced |
-| 18 | Digital FootPrint (Mobile) | verify-footprint-mobile | TODO | |
+| 18 | Digital FootPrint (Mobile) | verify-footprint-mobile | DONE ✅ | 2026-08-19 · single scenario; risk score + digital presence + network details |
 | 19 | Digital Foot Print (Email) | verify-footprint-email | TODO | |
 | 20 | Email Fraud Check | verify-email-fraud | TODO | |
 | 21 | Mobile to Form Prefill | verify-mobile-prefill | TODO | |
