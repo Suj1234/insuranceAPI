@@ -41,6 +41,9 @@ export const KARZA_BANK_AC_SILENT_PATH = '/v3/bankacc-verification-non-penny'
 /** Driver's License Authentication endpoint path on the vendor. */
 export const KARZA_DL_PATH = '/v3/dl'
 
+/** Passport Verification endpoint path on the vendor. */
+export const KARZA_PASSPORT_PATH = '/v3/passport-verification'
+
 /**
  * Fields in the PAN request/response that are PII and must never be logged raw.
  * Used by the redactor before writing api_call_logs.
@@ -64,6 +67,8 @@ export const PAN_PII_FIELDS = [
   'pin',
   'completeAddress',
   'accessKey',
+  'fileNo',
+  'passportNo',
 ] as const
 
 /**

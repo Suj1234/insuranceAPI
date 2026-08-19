@@ -8,6 +8,7 @@ import { PAN_LINK_ANY_VARIANTS } from './pan-link-any-variants'
 import { BANK_AC_ADVANCED_VARIANTS } from './bank-ac-advanced-variants'
 import { BANK_AC_SILENT_VARIANTS } from './bank-ac-silent-variants'
 import { DL_VARIANTS } from './dl-variants'
+import { PASSPORT_VARIANTS } from './passport-variants'
 
 export type ParamIn = 'query' | 'header' | 'path' | 'body'
 export type SchemaType = 'string' | 'number' | 'integer' | 'boolean' | 'array' | 'object' | 'null'
@@ -2436,5 +2437,78 @@ export const API_DEFINITIONS: ApiDefinition[] = [
       },
     }, null, 2),
     variants: DL_VARIANTS,
+  },
+
+  // ── Verification (KYC) — Passport Verification (TKYC) ────────────────────
+  {
+    id: 'verify-passport',
+    label: 'Passport Verification',
+    group: 'Verification (KYC)',
+    method: 'POST',
+    path: '/api/verify/passport',
+    shortDescription: 'Verify a passport issued by Passport Seva Kendra using File Number and Date of Birth',
+    description:
+      'Verifies a passport issued by Passport Seva Kendra basis File Number and Date of Birth (or Passport ' +
+      'Number, Date of Issue, and name), returning name-match, dispatch, and application-type details from the ' +
+      'source. The portal calls the verification provider on your behalf using your credentials; you only send ' +
+      'your platform API key.',
+    authNote: 'Pass your API key as the `x-api-key` request header. The vendor key is injected server-side.',
+    params: [
+      { name: 'x-api-key', in: 'header', required: true, type: 'string', description: 'Your platform API key', example: 'env_abc123...' },
+      { name: 'consent', in: 'body', required: true, type: 'string', description: 'Consent is required to make the API request.', example: 'Y', enum: ['Y', 'N'] },
+      { name: 'fileNo', in: 'body', required: false, type: 'string', description: 'Passport application File Number as printed on the last page of the passport' },
+      { name: 'dob', in: 'body', required: false, type: 'string', label: 'Date of Birth', placeholder: 'DD/MM/YYYY', description: 'Date of birth as per Passport' },
+      { name: 'passportNo', in: 'body', required: false, type: 'string', label: 'Passport Number', uppercase: true, description: 'Passport Number', validation: { pattern: '^(?!^0+$)[a-zA-Z0-9]{3,20}$', hint: '3-20 alphanumeric chars' } },
+      { name: 'doi', in: 'body', required: false, type: 'string', label: 'Date of Issue', placeholder: 'DD/MM/YYYY', description: 'Date of Issue as per Passport' },
+      { name: 'name', in: 'body', required: false, type: 'string', description: 'Complete name of the passport holder' },
+      { name: 'passportStatus', in: 'body', required: false, type: 'string', description: 'If status of passport required', example: 'Y', enum: ['Y', 'N'] },
+      { name: 'clientData', in: 'body', required: false, type: 'object', description: 'Data of the user sharing consent' },
+      { name: 'clientData.caseId', in: 'body', required: false, type: 'string', description: 'Unique case id/lead id of the user sharing consent', validation: { maxLength: 200, hint: 'Max-length 200' } },
+    ],
+    responseFields: [
+      { field: 'data.statusCode', type: 'integer', required: true, description: 'Internal Status Code that denotes the status of the request.' },
+      { field: 'data.requestId', type: 'string', required: true, description: 'Unique id of the API request.' },
+      { field: 'data.result', type: 'object', required: true, description: 'Response object for the given inputs.' },
+      { field: 'data.result.passportNumber', type: 'object', required: false, description: 'Object containing the passport number as per source' },
+      { field: 'data.result.passportNumber.passportNumberFromSource', type: 'string', required: false, description: 'Passport number allocated for the given File Number and Date of birth' },
+      { field: 'data.result.passportNumber.passportNumberMatch', type: 'boolean', required: false, description: 'Whether given passport number matches the number as per source' },
+      { field: 'data.result.applicationDate', type: 'string', required: false, description: 'Date of application as per source' },
+      { field: 'data.result.typeOfApplication', type: 'string', required: false, description: 'Application type [Normal or Tatkaal]' },
+      { field: 'data.result.dateOfIssue', type: 'object', required: false, description: 'Object containing the dispatch date as per source' },
+      { field: 'data.result.dateOfIssue.dispatchedOnFromSource', type: 'string', required: false, description: 'Date of Dispatch or Date of Counter Delivery of passport as per source' },
+      { field: 'data.result.dateOfIssue.dateOfIssueMatch', type: 'boolean', required: false, description: 'Whether the date of Issue is within 2 days of date of dispatch' },
+      { field: 'data.result.name', type: 'object', required: false, description: 'Object containing the details of the passport holder name as per source' },
+      { field: 'data.result.name.nameScore', type: 'float', required: false, description: 'Name match score' },
+      { field: 'data.result.name.nameMatch', type: 'boolean', required: false, description: 'Whether the given name matches with the name as per source' },
+      { field: 'data.result.name.surnameFromPassport', type: 'string', required: false, description: 'Surname as per Source' },
+      { field: 'data.result.name.nameFromPassport', type: 'string', required: false, description: 'Given Name [First and Middle] as per source' },
+      { field: 'data.result.status', type: 'string', required: false, description: 'Status message as per source' },
+      { field: 'data.clientData', type: 'object', required: true, description: 'Data of the user sharing consent' },
+      { field: 'data.clientData.caseId', type: 'string', required: true, description: 'Unique case id/lead id of the user sharing consent' },
+    ],
+    exampleRequest: {
+      body: JSON.stringify({
+        consent: 'Y', fileNo: 'BO3072344560818', dob: '17/08/1987', passportNo: 'S3733862',
+        doi: '14/05/2018', name: 'OMKAR MILIND SHIRHATTI', passportStatus: 'Y',
+        clientData: { caseId: '123456' },
+      }, null, 2),
+    },
+    exampleResponse: JSON.stringify({
+      success: true,
+      data: {
+        result: {
+          passportNumber: { passportNumberFromSource: 'S3733862', passportNumberMatch: true },
+          applicationDate: '14/05/2018',
+          typeOfApplication: 'Tatkaal',
+          dateOfIssue: { dispatchedOnFromSource: '14/05/2018', dateOfIssueMatch: true },
+          name: { nameScore: 1, nameMatch: true, surnameFromPassport: 'SHIRHATTI', nameFromPassport: 'OMKAR MILIND' },
+          status: 'Passport S3733862 has been dispatched on 14/05/2018 via Speed Post Tracking Number',
+        },
+        requestId: 'f3de6c55-6c0f-11e9-bf8e-610d4b51e956',
+        statusCode: 101,
+        clientData: { caseId: '123456' },
+      },
+    }, null, 2),
+    variants: PASSPORT_VARIANTS,
   },
 ]
