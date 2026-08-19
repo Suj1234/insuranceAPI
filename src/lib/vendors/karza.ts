@@ -68,6 +68,9 @@ export const KARZA_EMPLOYMENT_ADVANCED_PATH = '/v2/employment-verification-advan
 /** Digital FootPrint (Mobile) endpoint path on the vendor. */
 export const KARZA_DIGITAL_FOOTPRINT_MOBILE_PATH = '/v3/digitalfootprint/phone'
 
+/** Digital Foot Print (Email) endpoint path on the vendor. */
+export const KARZA_DIGITAL_FOOTPRINT_EMAIL_PATH = '/v3/digitalfootprint/email'
+
 /**
  * Fields in the PAN request/response that are PII and must never be logged raw.
  * Used by the redactor before writing api_call_logs.

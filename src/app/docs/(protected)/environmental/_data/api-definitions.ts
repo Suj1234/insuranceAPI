@@ -17,6 +17,7 @@ import { MCA_SIGNATORIES_VARIANTS } from './mca-signatories-variants'
 import { UDYOG_AADHAAR_VARIANTS } from './udyog-aadhaar-variants'
 import { EMPLOYMENT_ADVANCED_VARIANTS, employmentAdvancedResponseFields } from './employment-advanced-variants'
 import { DIGITAL_FOOTPRINT_MOBILE_VARIANTS } from './digital-footprint-mobile-variants'
+import { DIGITAL_FOOTPRINT_EMAIL_VARIANTS } from './digital-footprint-email-variants'
 
 export type ParamIn = 'query' | 'header' | 'path' | 'body'
 export type SchemaType = 'string' | 'number' | 'integer' | 'boolean' | 'array' | 'object' | 'null'
@@ -3136,5 +3137,78 @@ export const API_DEFINITIONS: ApiDefinition[] = [
       },
     }, null, 2),
     variants: DIGITAL_FOOTPRINT_MOBILE_VARIANTS,
+  },
+
+  // ── Verification (KYC) — Digital Foot Print (Email) (TKYC) ───────────────
+  {
+    id: 'verify-footprint-email',
+    label: 'Digital Foot Print (Email)',
+    group: 'Verification (KYC)',
+    method: 'POST',
+    path: '/api/verify/footprint-email',
+    shortDescription: 'Assess risk level for an email address using its digital presence and mailbox validity',
+    description:
+      'Assesses the risk level of an email address based on its digital footprint — social media, e-commerce, ' +
+      'statutory, and professional platform presence — plus mailbox validity checks (disposable, webmail, SMTP, ' +
+      'MX records) and whether the address has been seen in past fraud. Returns a risk score and level ' +
+      '(Red/Yellow/Green). The portal calls the verification provider on your behalf using your credentials; you ' +
+      'only send your platform API key.',
+    authNote: 'Pass your API key as the `x-api-key` request header. The vendor key is injected server-side.',
+    params: [
+      { name: 'x-api-key', in: 'header', required: true, type: 'string', description: 'Your platform API key', example: 'env_abc123...' },
+      { name: 'consent', in: 'body', required: true, type: 'string', description: 'Consent is required to make the API request.', example: 'Y', enum: ['Y', 'N'] },
+      { name: 'email', in: 'body', required: true, type: 'string', description: 'Email Id' },
+      { name: 'clientData', in: 'body', required: false, type: 'object', description: 'Data of the user sharing consent' },
+      { name: 'clientData.caseId', in: 'body', required: false, type: 'string', description: 'Unique case id/lead id of the user sharing consent', validation: { maxLength: 200, hint: 'Max-length 200' } },
+    ],
+    responseFields: [
+      { field: 'data.statusCode', type: 'integer', required: true, description: 'Internal Status Code that denotes the status of the request.' },
+      { field: 'data.requestId', type: 'string', required: true, description: 'Unique id of the API request.' },
+      { field: 'data.result', type: 'object', required: true, description: 'Response object for the given inputs.' },
+      { field: 'data.result.riskScore', type: 'integer', required: false, description: 'Risk Score against this email id' },
+      { field: 'data.result.riskLevel', type: 'string', required: false, description: 'Risk level against this score - Red, Yellow, Green' },
+      { field: 'data.result.isEmployed', type: 'boolean', required: false, description: 'Whether the individual is employed or not' },
+      { field: 'data.result.digitalPresence', type: 'object', required: false, description: 'Digital Presence Information' },
+      { field: 'data.result.digitalPresence.socialMedia', type: 'integer', required: false, description: 'Count of social media platform' },
+      { field: 'data.result.digitalPresence.essentials', type: 'integer', required: false, description: 'Count of daily essential platform' },
+      { field: 'data.result.digitalPresence.ecommerce', type: 'integer', required: false, description: 'Count of ecommerce platform' },
+      { field: 'data.result.digitalPresence.educational', type: 'integer', required: false, description: 'Count of educational platform' },
+      { field: 'data.result.digitalPresence.entertainment', type: 'integer', required: false, description: 'Count of entertainment platform' },
+      { field: 'data.result.digitalPresence.statutoryPresence', type: 'integer', required: false, description: 'Count of statutory presence platform' },
+      { field: 'data.result.digitalPresence.dating', type: 'integer', required: false, description: 'Count of dating app platform' },
+      { field: 'data.result.digitalPresence.professional', type: 'integer', required: false, description: 'Count of Professional platform' },
+      { field: 'data.result.emailDetails', type: 'object', required: false, description: 'Email related information' },
+      { field: 'data.result.emailDetails.disposable', type: 'boolean', required: false, description: 'Whether the given email id is from a disposable email provider' },
+      { field: 'data.result.emailDetails.webmail', type: 'boolean', required: false, description: 'Whether the email address is from a free webmail provider' },
+      { field: 'data.result.emailDetails.result', type: 'string', required: false, description: 'Overall validity result of the email' },
+      { field: 'data.result.emailDetails.acceptAll', type: 'boolean', required: false, description: 'The SMTP server accepts all emails as valid via proxy (uncertain validity in this case)' },
+      { field: 'data.result.emailDetails.smtpCheck', type: 'boolean', required: false, description: 'Whether the email id is accessible on the SMTP server (False implies it will bounce)' },
+      { field: 'data.result.emailDetails.regexp', type: 'boolean', required: false, description: 'Whether the email id follows a valid regular expression' },
+      { field: 'data.result.emailDetails.mxRecords', type: 'boolean', required: false, description: 'Whether mail exchanger records exist for the given email address' },
+      { field: 'data.result.emailDetails.smtpServer', type: 'boolean', required: false, description: 'Whether the email id is accessible on the SMTP server (False implies it will bounce)' },
+      { field: 'data.result.emailDetails.isBlocked', type: 'boolean', required: false, description: 'Email domain Blocked status' },
+      { field: 'data.result.emailDetails.reason', type: 'string', required: false, description: 'The reason for the Email domain Blockage' },
+      { field: 'data.result.seenInPastFraud', type: 'boolean', required: false, description: 'If this email was seen in any fraud in the past' },
+      { field: 'data.clientData', type: 'object', required: true, description: 'Data of the user sharing consent' },
+      { field: 'data.clientData.caseId', type: 'string', required: true, description: 'Unique case id/lead id of the user sharing consent' },
+    ],
+    exampleRequest: {
+      body: JSON.stringify({ email: 'anurag.narkhede@gmail.com', consent: 'Y', clientData: { caseId: '123456' } }, null, 2),
+    },
+    exampleResponse: JSON.stringify({
+      success: true,
+      data: {
+        requestId: '66a67f88-9ec6-4c06-8afa-aa0d3b56a81c',
+        result: {
+          riskScore: 0, riskLevel: 'green', isEmployed: false,
+          digitalPresence: { socialMedia: 3, essentials: 3, ecommerce: 2, educational: 0, entertainment: 1, statutoryPresence: 0, dating: 0, professional: 7 },
+          emailDetails: { disposable: false, webmail: false, result: 'valid', acceptAll: false, smtpCheck: true, regexp: true, mxRecords: true, smtpServer: true, isBlocked: false, reason: 'user_exist' },
+          seenInPastFraud: null,
+        },
+        statusCode: 101,
+        clientData: { caseId: '123456' },
+      },
+    }, null, 2),
+    variants: DIGITAL_FOOTPRINT_EMAIL_VARIANTS,
   },
 ]
