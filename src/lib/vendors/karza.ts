@@ -53,6 +53,9 @@ export const KARZA_GST_PATH = '/gst/prod/v2/gstdetailed'
 /** GST Advanced (PAN to all GSTINs + profile + filing history) endpoint path on the vendor. */
 export const KARZA_GST_ADVANCED_PATH = '/gst/prod/v2/gst-advanced'
 
+/** GST Search Basis PAN endpoint path on the vendor. */
+export const KARZA_GST_BY_PAN_PATH = '/gst/prod/v2/search'
+
 /**
  * Fields in the PAN request/response that are PII and must never be logged raw.
  * Used by the redactor before writing api_call_logs.

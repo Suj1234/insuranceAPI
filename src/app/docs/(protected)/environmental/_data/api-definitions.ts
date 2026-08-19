@@ -12,6 +12,7 @@ import { PASSPORT_VARIANTS } from './passport-variants'
 import { RC_ADVANCED_VARIANTS } from './rc-advanced-variants'
 import { GST_VARIANTS } from './gst-variants'
 import { GST_ADVANCED_VARIANTS, gstinEntryFields } from './gst-advanced-variants'
+import { GST_BY_PAN_VARIANTS } from './gst-by-pan-variants'
 
 export type ParamIn = 'query' | 'header' | 'path' | 'body'
 export type SchemaType = 'string' | 'number' | 'integer' | 'boolean' | 'array' | 'object' | 'null'
@@ -2788,5 +2789,61 @@ export const API_DEFINITIONS: ApiDefinition[] = [
       },
     }, null, 2),
     variants: GST_ADVANCED_VARIANTS,
+  },
+
+  // ── Verification (KYC) — GST Search Basis PAN (TKYC) ──────────────────────
+  {
+    id: 'verify-gst-by-pan',
+    label: 'GST Search Basis PAN',
+    group: 'Verification (KYC)',
+    method: 'POST',
+    path: '/api/verify/gst-by-pan',
+    shortDescription: 'Identify all GSTINs registered pan-India against a given PAN',
+    description:
+      "Identifies the GSTINs registered pan-India against an entity's PAN, returning each GSTIN's ID, " +
+      "registration status, and registration type. Use this as a lightweight lookup before calling GST " +
+      "Authentication or GST Advanced for full profile/filing details on a specific GSTIN. The portal calls the " +
+      "verification provider on your behalf using your credentials; you only send your platform API key.",
+    authNote: 'Pass your API key as the `x-api-key` request header. The vendor key is injected server-side.',
+    params: [
+      { name: 'x-api-key', in: 'header', required: true, type: 'string', description: 'Your platform API key', example: 'env_abc123...' },
+      { name: 'consent', in: 'body', required: true, type: 'string', description: 'Consent is required to make the API request.', example: 'Y', enum: ['Y', 'N'] },
+      { name: 'pan', in: 'body', required: true, type: 'string', label: 'PAN Number', uppercase: true, placeholder: 'AAACR5055K', description: 'PAN to be authenticated', validation: { pattern: '^[A-Za-z]{5}\\d{4}[A-Za-z]{1}$', hint: '5 letters, 4 digits, 1 letter' } },
+      { name: 'clientData', in: 'body', required: false, type: 'object', description: 'Data of the user sharing consent' },
+      { name: 'clientData.caseId', in: 'body', required: false, type: 'string', description: 'Unique case id/lead id of the user sharing consent', validation: { maxLength: 200, hint: 'Max-length 200' } },
+    ],
+    responseFields: [
+      { field: 'data.statusCode', type: 'integer', required: true, description: 'Internal Status Code that denotes the status of the request.' },
+      { field: 'data.requestId', type: 'string', required: true, description: 'Unique ID of the API request.' },
+      { field: 'data.result', type: 'array', required: false, description: 'Response object for the given inputs.' },
+      { field: 'data.result[].emailId', type: 'string', required: false, description: 'Email ID of the registered entity linked with the GSTIN' },
+      { field: 'data.result[].applicationStatus', type: 'string', required: false, description: 'Current status of application under GST (MIG = Migrated, DFT = Activated etc)' },
+      { field: 'data.result[].mobNum', type: 'string', required: false, description: 'Mobile Number of the registered entity linked with the GSTIN' },
+      { field: 'data.result[].pan', type: 'string', required: false, description: 'PAN Number of the registered entity' },
+      { field: 'data.result[].gstinRefId', type: 'string', required: false, description: 'Unique GST application reference ID' },
+      { field: 'data.result[].regType', type: 'string', required: false, description: 'Registration Type under GST (V=VAT, S=Service Tax)' },
+      { field: 'data.result[].authStatus', type: 'string', required: false, description: 'GSTIN Status (Active/Inactive)' },
+      { field: 'data.result[].gstinId', type: 'string', required: false, description: 'Unique 15 character GSTIN corresponding to the given tin' },
+      { field: 'data.result[].registrationName', type: 'string', required: false, description: 'Registered Name of the entity as per GST' },
+      { field: 'data.result[].tinNumber', type: 'string', required: false, description: 'Old VAT or Service Tax Tin associated with the GSTIN' },
+      { field: 'data.clientData', type: 'object', required: true, description: 'Data of the user sharing consent' },
+      { field: 'data.clientData.caseId', type: 'string', required: true, description: 'Unique case id/lead id of the user sharing consent' },
+    ],
+    exampleRequest: {
+      body: JSON.stringify({ consent: 'Y', pan: 'AAACR5055K', clientData: { caseId: '123456' } }, null, 2),
+    },
+    exampleResponse: JSON.stringify({
+      success: true,
+      data: {
+        statusCode: '101',
+        requestId: '7ad45acb-dc33-11e8-8063-cba6293b15e6',
+        result: [
+          { emailId: '', applicationStatus: '', mobNum: '', pan: 'AAACR5055K', gstinRefId: '', regType: '', authStatus: 'Active', gstinId: '09AAACR5055K1Z5', registrationName: '', tinNumber: '' },
+          { emailId: '', applicationStatus: '', mobNum: '', pan: 'AAACR5055K', gstinRefId: '', regType: '', authStatus: 'Active', gstinId: '03AAACR5055K2ZG', registrationName: '', tinNumber: '' },
+        ],
+        clientData: { caseId: '123456' },
+      },
+    }, null, 2),
+    variants: GST_BY_PAN_VARIANTS,
   },
 ]
