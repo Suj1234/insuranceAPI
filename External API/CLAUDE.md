@@ -38,7 +38,7 @@ PDFs will be added over time** — that's expected; step 1 absorbs them.
 | 2 | PAN DOB Status | verify-pan-dob-status | DONE ✅ | 2026-08-19 · single scenario; no name/dob validation fields (unlike PAN Status) |
 | 3 | PAN Link Status (with unique Aadhaar) | verify-pan-link-unique-consent, verify-pan-link-unique-check | DONE ✅ | 2026-08-19 · 2-step vendor flow (consent → accessKey → link check), split into 2 sidebar entries/routes since Tryout is one-call-per-definition; user copies accessKey from step 1 into step 2 |
 | 4 | PAN Link Status (with any Aadhaar) | verify-pan-link-any | DONE ✅ | 2026-08-19 · single scenario; PAN-only input |
-| 5 | Bank AC Verification Advanced | verify-bank-ac-advanced | TODO | |
+| 5 | Bank AC Verification Advanced | verify-bank-ac-advanced | DONE ✅ | 2026-08-19 · deep nested response (source[], comparisionData); either accountHolderName or multiNameList required (not enforced in Zod — vendor-side) |
 | 6 | Silent Bank Account Verification | verify-bank-ac-silent | TODO | |
 | 7 | Driver's License Authentication | verify-dl | TODO | |
 | 8 | Driver's License Authentication Advanced | verify-dl-advanced | TODO | |

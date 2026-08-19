@@ -32,6 +32,9 @@ export const KARZA_PAN_LINK_UNIQUE_CHECK_PATH = '/v3/pan-aadhaar-link'
 /** PAN Link Status (any Aadhaar) endpoint path on the vendor. */
 export const KARZA_PAN_LINK_ANY_PATH = '/v3/pan-link'
 
+/** Bank AC Verification Advanced endpoint path on the vendor. */
+export const KARZA_BANK_AC_ADVANCED_PATH = '/v3/bankacc-verification'
+
 /**
  * Fields in the PAN request/response that are PII and must never be logged raw.
  * Used by the redactor before writing api_call_logs.
@@ -44,6 +47,10 @@ export const PAN_PII_FIELDS = [
   'name',
   'address',
   'ipAddress',
+  'accountNumber',
+  'accountHolderName',
+  'ifsc',
+  'bankRRN',
   'accessKey',
 ] as const
 

@@ -5,6 +5,7 @@ import { PAN_DOB_STATUS_VARIANTS } from './pan-dob-status-variants'
 import { PAN_LINK_UNIQUE_CONSENT_VARIANTS } from './pan-link-unique-consent-variants'
 import { PAN_LINK_UNIQUE_CHECK_VARIANTS } from './pan-link-unique-check-variants'
 import { PAN_LINK_ANY_VARIANTS } from './pan-link-any-variants'
+import { BANK_AC_ADVANCED_VARIANTS } from './bank-ac-advanced-variants'
 
 export type ParamIn = 'query' | 'header' | 'path' | 'body'
 export type SchemaType = 'string' | 'number' | 'integer' | 'boolean' | 'array' | 'object' | 'null'
@@ -2103,5 +2104,125 @@ export const API_DEFINITIONS: ApiDefinition[] = [
       },
     }, null, 2),
     variants: PAN_LINK_ANY_VARIANTS,
+  },
+
+  // ── Verification (KYC) — Bank AC Verification Advanced (TKYC) ────────────
+  {
+    id: 'verify-bank-ac-advanced',
+    label: 'Bank AC Verification Advanced',
+    group: 'Verification (KYC)',
+    method: 'POST',
+    path: '/api/verify/bank-ac-advanced',
+    shortDescription: 'Verify a bank account by performing a transaction/enquiry call and reading the NPCI response',
+    description:
+      'Verifies the Bank Account information of an entity or individual by performing a transaction or enquiry ' +
+      'call to the given Bank Account, and reading the response received from NPCI for the transaction. Supports ' +
+      'both single-name and multi-name matching, with configurable strictness. The portal calls the verification ' +
+      'provider on your behalf using your credentials; you only send your platform API key.',
+    authNote: 'Pass your API key as the `x-api-key` request header. The vendor key is injected server-side.',
+    params: [
+      { name: 'x-api-key', in: 'header', required: true, type: 'string', description: 'Your platform API key', example: 'env_abc123...' },
+      { name: 'consent', in: 'body', required: true, type: 'string', description: 'Consent is required to make the API request.', example: 'Y', enum: ['Y', 'N'] },
+      { name: 'accountNumber', in: 'body', required: true, type: 'string', description: 'Account number to be verified.', validation: { minLength: 5, maxLength: 25, pattern: '^[a-zA-Z0-9]+$', hint: 'alphanumeric, 5-25 chars' } },
+      { name: 'accountHolderName', in: 'body', required: false, type: 'string', description: 'Name of the account holder whose account is being verified (either accountHolderName or multiNameList to be passed)', validation: { pattern: "^[a-zA-Z0-9&,-/()_'. ]+$", hint: 'letters, numbers, and & , - / ( ) _ \' .' } },
+      { name: 'multiNameList', in: 'body', required: false, type: 'array', description: 'Multiple names that needs to be matched with bank name (either accountHolderName or multiNameList to be passed)' },
+      { name: 'ifsc', in: 'body', required: true, type: 'string', label: 'IFSC Code', uppercase: true, description: 'IFSC code of the home branch of the account.', validation: { pattern: '^[\\w]{4}0[\\w|\\d]{6}$', hint: '4 chars, 0, 6 chars/digits' } },
+      { name: 'nameMatchType', in: 'body', required: false, type: 'string', description: 'Whether the account holder is an individual or an entity', enum: ['individual', 'entity'] },
+      { name: 'useCombinedSolution', in: 'body', required: false, type: 'string', description: 'To be passed when combined solution needs to be used (Nonpenny + pennydrop)', example: 'Y' },
+      { name: 'allowPartialMatch', in: 'body', required: false, type: 'boolean', description: 'To allow partial name match algorithm' },
+      { name: 'preset', in: 'body', required: false, type: 'string', description: 'Strictness level of matching', example: 'G', validation: { hint: 'G (General), L (Lenient), S (Strict); default G' } },
+      { name: 'suppressReorderPenalty', in: 'body', required: false, type: 'boolean', description: 'To suppress reordering of name token' },
+      { name: 'clientData', in: 'body', required: false, type: 'object', description: 'Data of the user sharing consent' },
+      { name: 'clientData.caseId', in: 'body', required: false, type: 'string', description: 'Unique case id/lead id of the user sharing consent', validation: { maxLength: 200, hint: 'Max-length 200' } },
+    ],
+    responseFields: [
+      { field: 'data.statusCode', type: 'integer', required: true, description: 'Internal Status Code that denotes the status of the request.' },
+      { field: 'data.requestId', type: 'string', required: true, description: 'Unique id of the API request.' },
+      { field: 'data.result', type: 'object', required: true, description: 'Response object for the given inputs.' },
+      { field: 'data.result.data', type: 'object', required: false, description: 'Response data for the given inputs' },
+      { field: 'data.result.data.source', type: 'array', required: false, description: 'Data as per source for the given inputs' },
+      { field: 'data.result.data.source[].statusAsPerSource', type: 'string', required: false, description: 'Validity Status as per source' },
+      { field: 'data.result.data.source[].data', type: 'object', required: false, description: 'Response data from source' },
+      { field: 'data.result.data.source[].data.accountNumber', type: 'string', required: false, description: 'Provided account number' },
+      { field: 'data.result.data.source[].data.ifsc', type: 'string', required: false, description: 'Provided IFSC code' },
+      { field: 'data.result.data.source[].data.accountName', type: 'string', required: true, description: 'Name of the account holder' },
+      { field: 'data.result.data.source[].data.bankResponse', type: 'string', required: true, description: 'Bank response for the transaction' },
+      { field: 'data.result.data.source[].data.bankTxnStatus', type: 'boolean', required: true, description: 'Bank Transaction Status' },
+      { field: 'data.result.data.source[].data.bankRRN', type: 'string', required: true, description: 'Bank RRN for the transaction' },
+      { field: 'data.result.data.source[].data.statusCode', type: 'string', required: true, description: 'Internal Status Code that denotes the status of the request.' },
+      { field: 'data.result.data.source[].isValid', type: 'boolean', required: false, description: 'Validity Status' },
+      { field: 'data.result.data.identifier', type: 'string', required: false, description: 'Identification of the transaction processed through framework (NON_PENNY OR PENNY)' },
+      { field: 'data.result.comparisionData', type: 'object', required: false, description: 'Comparison Data' },
+      { field: 'data.result.comparisionData.inputVsSource', type: 'object', required: false, description: 'Comparison of Input vs Source data' },
+      { field: 'data.result.comparisionData.inputVsSource.flags', type: 'object', required: false, description: 'Flags from Comparison data' },
+      { field: 'data.result.comparisionData.inputVsSource.flags.multiNameList', type: 'object', required: false, description: 'Multi name match List' },
+      { field: 'data.result.comparisionData.inputVsSource.flags.multiNameList.matches', type: 'array', required: false, description: 'Match score and result for all the names provided' },
+      { field: 'data.result.comparisionData.inputVsSource.flags.multiNameList.matches[].score', type: 'float', required: false, description: 'Name Match Score' },
+      { field: 'data.result.comparisionData.inputVsSource.flags.multiNameList.matches[].result', type: 'boolean', required: true, description: 'Name Match Result' },
+      { field: 'data.result.comparisionData.inputVsSource.flags.multiNameList.matches[].name', type: 'string', required: false, description: 'Name provided for matching with the standard given name' },
+      { field: 'data.result.comparisionData.inputVsSource.flags.multiNameList.combinedScore', type: 'float', required: false, description: 'Combined score of base name with multiple names provided in the input.' },
+      { field: 'data.result.comparisionData.inputVsSource.validity', type: 'string', required: false, description: 'Validity Status as per comparison' },
+      { field: 'data.clientData', type: 'object', required: true, description: 'Data of the user sharing consent' },
+      { field: 'data.clientData.caseId', type: 'string', required: true, description: 'Unique case id/lead id of the user sharing consent' },
+    ],
+    exampleRequest: {
+      body: JSON.stringify({
+        accountNumber: '100xxxxx979',
+        accountHolderName: 'PERFIOS SOFTWARE SOLUTIONS PRIVATE LIMITED',
+        multiNameList: ['Perfios', 'Boyapati', 'Technologies'],
+        ifsc: 'IDFBxxxx101',
+        consent: 'Y',
+        nameMatchType: 'Entity',
+        useCombinedSolution: 'Y',
+        allowPartialMatch: true,
+        preset: 'G',
+        suppressReorderPenalty: true,
+        clientData: { caseId: '123456' },
+      }, null, 2),
+    },
+    exampleResponse: JSON.stringify({
+      success: true,
+      data: {
+        requestId: 'ee79852b-e3e5-4ae4-b2ef-d81442664be2',
+        result: {
+          data: {
+            source: [
+              {
+                statusAsPerSource: 'VALID',
+                data: {
+                  accountNumber: '10052056979',
+                  ifsc: 'IDFB0040101',
+                  accountName: 'PERFIOS SOFTWARE SOLUTIONS PRIVATE LIMITED',
+                  bankResponse: 'SUCCESSFUL TRANSACTION',
+                  bankTxnStatus: true,
+                  bankRRN: '521311711179',
+                  statusCode: 'KC01',
+                },
+                isValid: true,
+              },
+            ],
+            identifier: 'NON_PENNY',
+          },
+          comparisionData: {
+            inputVsSource: {
+              flags: {
+                multiNameList: {
+                  matches: [
+                    { score: 0.905, result: true, name: 'Perfios' },
+                    { score: 0.15076399733723234, result: false, name: 'Boyapati' },
+                    { score: 0.14811483597375216, result: false, name: 'Technologies' },
+                  ],
+                  combinedScore: 0.4012929444369948,
+                },
+              },
+              validity: 'VALID',
+            },
+          },
+        },
+        statusCode: 101,
+        clientData: { caseId: '123456' },
+      },
+    }, null, 2),
+    variants: BANK_AC_ADVANCED_VARIANTS,
   },
 ]
