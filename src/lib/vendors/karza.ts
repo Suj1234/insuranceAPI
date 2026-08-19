@@ -59,6 +59,9 @@ export const KARZA_GST_BY_PAN_PATH = '/gst/prod/v2/search'
 /** MCA Signatories endpoint path on the vendor. */
 export const KARZA_MCA_SIGNATORIES_PATH = '/v2/mca-signatories'
 
+/** Udyog Aadhar Number endpoint path on the vendor. */
+export const KARZA_UDYOG_AADHAAR_PATH = '/v2/uam'
+
 /**
  * Fields in the PAN request/response that are PII and must never be logged raw.
  * Used by the redactor before writing api_call_logs.
@@ -102,6 +105,11 @@ export const PAN_PII_FIELDS = [
   'cin',
   'DIN/DPIN/PAN',
   'full_name',
+  'uan',
+  'mobile',
+  'aadhar',
+  'AccountNumber',
+  'OwnerName',
 ] as const
 
 /**
