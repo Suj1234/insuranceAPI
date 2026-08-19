@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { Send, Loader2, Info } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn, apiPath } from '@/lib/utils'
 import { CollapsibleSection } from './collapsible-section'
 import { SubTabBar } from './sub-tab-bar'
 import { CodeBlock } from './code-block'
@@ -261,7 +261,7 @@ export function TryoutTab({ api, apiKey }: TryoutTabProps) {
     if (_metaCache && Date.now() - _metaCache.ts < 60 * 60 * 1000) {
       setMeta(_metaCache.data); return
     }
-    fetch('/api/environmental/meta')
+    fetch(apiPath('api/environmental/meta'))
       .then(r => r.json())
       .then(j => {
         if (j.success) { _metaCache = { data: j.data, ts: Date.now() }; setMeta(j.data) }

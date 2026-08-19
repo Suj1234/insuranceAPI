@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Eye, EyeOff } from 'lucide-react'
+import { apiPath } from '@/lib/utils'
 
 export default function DocsLogin() {
   const router = useRouter()
@@ -17,7 +18,7 @@ export default function DocsLogin() {
     setError('')
     setLoading(true)
     try {
-      const res = await fetch('/api/docs/auth/login', {
+      const res = await fetch(apiPath('api/docs/auth/login'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: email.trim(), password }),

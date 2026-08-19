@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { LogOut, Copy, Check, ChevronDown, Eye, EyeOff } from 'lucide-react'
 import { ThemeToggle } from './theme-toggle'
-import { cn } from '@/lib/utils'
+import { cn, apiPath } from '@/lib/utils'
 
 interface NavbarProps {
   userName: string
@@ -49,7 +49,7 @@ export function Navbar({ userName, apiKey }: NavbarProps) {
 
   async function handleLogout() {
     setLoggingOut(true)
-    await fetch('/api/docs/auth/logout', { method: 'POST' })
+    await fetch(apiPath('api/docs/auth/logout'), { method: 'POST' })
     router.push('/docs/login')
   }
 
