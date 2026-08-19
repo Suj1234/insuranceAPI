@@ -12,6 +12,7 @@ import { AboutTab } from '@/components/docs/about-tab'
 import { IntroPage } from '@/components/docs/intro-content'
 import { API_DEFINITIONS } from './_data/api-definitions'
 import { BASE_URL } from './_data/introduction'
+import type { IntroSectionId } from './_data/introduction'
 import type { ActiveView } from './_data/types'
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
@@ -83,7 +84,12 @@ export default function EnvironmentalDocsPage() {
 
           {view.kind === 'intro' ? (
             <div ref={scrollRef} className="flex-1 overflow-y-auto">
-              <IntroPage />
+              <IntroPage
+                activeSectionId={view.sectionId}
+                onSectionChange={id => {
+                  if (id) setView({ kind: 'intro', sectionId: id as IntroSectionId })
+                }}
+              />
             </div>
           ) : activeApi ? (
             <>

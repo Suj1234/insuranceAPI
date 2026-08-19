@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils'
-import type { Param } from '@/app/docs/(protected)/environmental/_data/api-definitions'
+import type { Param } from '@/app/docs/(protected)/_data/api-definitions'
 
 // Location badge — quiet neutral chips (no accent purple). `header` keeps a
 // warm amber tint to distinguish auth headers; the rest are ink-on-stone.

@@ -10,6 +10,11 @@ const BodySchema = z.object({
   password: z.string().min(1),
 })
 
+// Cookies must be scoped to the app's real path. Behind the gateway the app lives
+// at /demo/api-playground, so Path=/docs would NOT match /demo/api-playground/docs
+// and the browser would never send the session cookie back → redirect loop.
+const COOKIE_PATH = `${process.env.__NEXT_ROUTER_BASEPATH ?? ''}/docs`
+
 export async function POST(req: NextRequest) {
   let body: unknown
   try {
@@ -47,7 +52,7 @@ export async function POST(req: NextRequest) {
       httpOnly: true,
       secure:   process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      path:     '/docs',
+      path:     COOKIE_PATH,
       maxAge:   60 * 60 * 8, // 8 hours
     })
     // Store masked API key for the profile dropdown (read by page.tsx via DOM)
@@ -55,14 +60,14 @@ export async function POST(req: NextRequest) {
       httpOnly: false,   // needs to be readable by client JS
       secure:   process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      path:     '/docs',
+      path:     COOKIE_PATH,
       maxAge:   60 * 60 * 8,
     })
     res.cookies.set('docs_user_name', user.name, {
       httpOnly: false,
       secure:   process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      path:     '/docs',
+      path:     COOKIE_PATH,
       maxAge:   60 * 60 * 8,
     })
     return res

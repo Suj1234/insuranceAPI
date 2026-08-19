@@ -7,7 +7,7 @@ import { CollapsibleSection } from './collapsible-section'
 import { SubTabBar } from './sub-tab-bar'
 import { CodeBlock } from './code-block'
 import { SearchableSelect } from './searchable-select'
-import type { ApiDefinition, ParamValidation } from '@/app/docs/(protected)/environmental/_data/api-definitions'
+import type { ApiDefinition, ParamValidation } from '@/app/docs/(protected)/_data/api-definitions'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 

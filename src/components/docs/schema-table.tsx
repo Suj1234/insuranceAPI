@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils'
-import type { ResponseField } from '@/app/docs/(protected)/environmental/_data/api-definitions'
+import type { ResponseField } from '@/app/docs/(protected)/_data/api-definitions'
 
 interface SchemaTableProps {
   fields: ResponseField[]

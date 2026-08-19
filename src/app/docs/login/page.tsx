@@ -28,7 +28,7 @@ export default function DocsLogin() {
         setError(data.error ?? 'Invalid credentials')
         return
       }
-      router.push('/docs/environmental')
+      router.push('/docs')
     } catch {
       setError('Network error. Please try again.')
     } finally {

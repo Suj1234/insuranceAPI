@@ -1,6 +1,6 @@
 import { CollapsibleSection } from './collapsible-section'
 import { cn } from '@/lib/utils'
-import type { AboutBlock } from '@/app/docs/(protected)/environmental/_data/api-definitions'
+import type { AboutBlock } from '@/app/docs/(protected)/_data/api-definitions'
 
 interface AboutTabProps {
   blocks: AboutBlock[]

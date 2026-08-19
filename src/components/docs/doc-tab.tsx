@@ -7,7 +7,7 @@ import { SubTabBar } from './sub-tab-bar'
 import { ParamsTable } from './params-table'
 import { SchemaTable } from './schema-table'
 import { CodeBlock } from './code-block'
-import type { ApiDefinition, ApiVariant, Param, ResponseField } from '@/app/docs/(protected)/environmental/_data/api-definitions'
+import type { ApiDefinition, ApiVariant, Param, ResponseField } from '@/app/docs/(protected)/_data/api-definitions'
 
 interface DocTabProps {
   api: ApiDefinition

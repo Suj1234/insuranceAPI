@@ -3,10 +3,10 @@
 import { useState } from 'react'
 import { ChevronDown, ChevronRight, Search, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { INTRO_ITEMS } from '@/app/docs/(protected)/environmental/_data/introduction'
-import { API_DEFINITIONS } from '@/app/docs/(protected)/environmental/_data/api-definitions'
-import type { ActiveView } from '@/app/docs/(protected)/environmental/_data/types'
-import type { IntroSectionId } from '@/app/docs/(protected)/environmental/_data/introduction'
+import { INTRO_ITEMS } from '@/app/docs/(protected)/_data/introduction'
+import { API_DEFINITIONS } from '@/app/docs/(protected)/_data/api-definitions'
+import type { ActiveView } from '@/app/docs/(protected)/_data/types'
+import type { IntroSectionId } from '@/app/docs/(protected)/_data/introduction'
 
 // Legacy APIs (no explicit `group`): first 4 are Environmental, rest Flood & Hydrology.
 // APIs with an explicit `group` (KYC/Banking/Asset/Employment/Digital subcategories) are grouped by that field.
@@ -103,11 +103,7 @@ export function Sidebar({ view, setView }: SidebarProps) {
     : INTRO_ITEMS
 
   const filteredApis = q
-    ? API_DEFINITIONS.filter(api =>
-        api.label.toLowerCase().includes(q) ||
-        api.shortDescription.toLowerCase().includes(q) ||
-        api.path.toLowerCase().includes(q)
-      )
+    ? API_DEFINITIONS.filter(api => api.label.toLowerCase().includes(q))
     : API_DEFINITIONS
 
   const envApis            = filteredApis.filter(a => !a.group &&  ENV_API_IDS.has(a.id))
@@ -120,8 +116,8 @@ export function Sidebar({ view, setView }: SidebarProps) {
   const digitalApis        = filteredApis.filter(a => a.group === 'Digital Essentials')
 
   const showIntroGroup         = filteredIntro.length > 0
-  const showEnvGroup           = envApis.length > 0
-  const showFloodGroup         = floodApis.length > 0
+  const showEnvGroup           = false // ponytail: UI-only hide, flip back to `envApis.length > 0` to restore
+  const showFloodGroup         = false // ponytail: UI-only hide, flip back to `floodApis.length > 0` to restore
   const showKycRetailGroup     = kycRetailApis.length > 0
   const showKycCommercialGroup = kycCommercialApis.length > 0
   const showEmploymentGroup    = employmentApis.length > 0
@@ -141,11 +137,11 @@ export function Sidebar({ view, setView }: SidebarProps) {
   }
 
   return (
-    <aside className="w-[260px] flex-shrink-0 flex flex-col bg-[--color-surface] border-r border-[--color-border] overflow-hidden">
+    <aside className="w-[288px] flex-shrink-0 flex flex-col bg-[--color-surface] border-r border-[--color-border] overflow-hidden">
 
       {/* Search */}
       <div className="px-3 pt-3 pb-2.5 border-b border-[--color-border]">
-        <div className="flex items-center gap-2 bg-[--color-surface-2] border border-[--color-border] rounded px-2.5 py-[7px] focus-within:border-[--color-accent] transition-colors duration-150">
+        <div className="flex items-center gap-2 bg-[--color-surface-2] border border-[--color-border] rounded px-2.5 py-[7px] outline-none focus-within:border-[--color-text-primary] transition-colors duration-150">
           <Search size={12} className="text-[--color-text-xmuted] flex-shrink-0" />
           <input
             type="text"
@@ -154,8 +150,9 @@ export function Sidebar({ view, setView }: SidebarProps) {
             placeholder="Search APIs…"
             aria-label="Search APIs"
             className={cn(
-              'flex-1 bg-transparent border-none outline-none min-w-0',
+              'flex-1 bg-transparent border-none min-w-0',
               'text-xs text-[--color-text-body] placeholder:text-[--color-text-xmuted]',
+              'outline-none focus-visible:outline-none',
             )}
           />
           {search && (
