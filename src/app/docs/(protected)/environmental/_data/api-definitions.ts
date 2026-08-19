@@ -15,6 +15,7 @@ import { GST_ADVANCED_VARIANTS, gstinEntryFields } from './gst-advanced-variants
 import { GST_BY_PAN_VARIANTS } from './gst-by-pan-variants'
 import { MCA_SIGNATORIES_VARIANTS } from './mca-signatories-variants'
 import { UDYOG_AADHAAR_VARIANTS } from './udyog-aadhaar-variants'
+import { EMPLOYMENT_ADVANCED_VARIANTS, employmentAdvancedResponseFields } from './employment-advanced-variants'
 
 export type ParamIn = 'query' | 'header' | 'path' | 'body'
 export type SchemaType = 'string' | 'number' | 'integer' | 'boolean' | 'array' | 'object' | 'null'
@@ -2978,5 +2979,71 @@ export const API_DEFINITIONS: ApiDefinition[] = [
       },
     }, null, 2),
     variants: UDYOG_AADHAAR_VARIANTS,
+  },
+
+  // ── Verification (KYC) — Employment Verification Advanced (PAN Flow) (TKYC) ──
+  {
+    id: 'verify-employment-advanced',
+    label: 'Employment Verification Advanced (PAN Flow)',
+    group: 'Verification (KYC)',
+    method: 'POST',
+    path: '/api/verify/employment-advanced',
+    shortDescription: "Authenticate and verify an individual's employment history using PAN, EPFO/UAN, and email/domain checks",
+    description:
+      "Authenticates and verifies the employment history of an individual using their PAN number. Cross-checks " +
+      "EPFO/UAN contribution history, employer name/domain matches, work email validity and organization " +
+      "ownership, and returns personal info, a per-check summary, and an overall waiveFi recommendation. Supports " +
+      "an optional PDF report link. The portal calls the verification provider on your behalf using your " +
+      "credentials; you only send your platform API key.",
+    authNote: 'Pass your API key as the `x-api-key` request header. The vendor key is injected server-side.',
+    params: [
+      { name: 'x-api-key', in: 'header', required: true, type: 'string', description: 'Your platform API key', example: 'env_abc123...' },
+      { name: 'consent', in: 'body', required: true, type: 'string', description: 'Consent is required to make the API request.', example: 'Y', enum: ['Y', 'N'] },
+      { name: 'uans', in: 'body', required: false, type: 'array', description: 'UAN(s) allotted to the individual by EPFO', validation: { pattern: '^[0-9]{12}$', hint: '12 digits per item' } },
+      { name: 'entityId', in: 'body', required: false, type: 'string', description: 'Entity ID/CIN of the Company' },
+      { name: 'employerName', in: 'body', required: false, type: 'string', description: 'Employer Name', validation: { minLength: 3, maxLength: 255, hint: '3-255 chars' } },
+      { name: 'employeeName', in: 'body', required: false, type: 'string', description: 'Employee Name', validation: { minLength: 3, maxLength: 50, hint: '3-50 chars' } },
+      { name: 'mobile', in: 'body', required: false, type: 'string', description: 'Mobile Number of the Individual', validation: { pattern: '^[6-9]\\d{9}$', hint: '10 digits, starts with 6-9' } },
+      { name: 'emailId', in: 'body', required: false, type: 'string', description: 'Work Email of the Individual' },
+      { name: 'runPanFlow', in: 'body', required: true, type: 'boolean', description: 'Trigger PAN Flow' },
+      { name: 'pan', in: 'body', required: true, type: 'string', label: 'PAN Number', uppercase: true, placeholder: 'DFKAB1295K', description: 'PAN number of the individual', validation: { minLength: 10, maxLength: 10, pattern: '^[A-Za-z]{5}\\d{4}[A-Za-z]{1}$', hint: '5 letters, 4 digits, 1 letter' } },
+      { name: 'showFailures', in: 'body', required: false, type: 'boolean', description: 'Shows details regarding the failures' },
+      { name: 'isLatestEmployer', in: 'body', required: false, type: 'boolean', description: 'To trigger the latest employer flow' },
+      { name: 'pdf', in: 'body', required: false, type: 'boolean', description: 'If this is true then get the pdf link in the response' },
+      { name: 'clientData', in: 'body', required: false, type: 'object', description: 'Data of the user sharing consent' },
+      { name: 'clientData.caseId', in: 'body', required: false, type: 'string', description: 'Unique case id/lead id of the user sharing consent', validation: { maxLength: 200, hint: 'Max-length 200' } },
+    ],
+    responseFields: [
+      { field: 'data.status-code', type: 'string', required: true, description: 'Internal Status Code that denotes the status of the request.' },
+      { field: 'data.request_id', type: 'string', required: true, description: 'Unique id of the API request.' },
+      ...employmentAdvancedResponseFields('data.'),
+      { field: 'data.clientData', type: 'object', required: true, description: 'Data of the user sharing consent' },
+      { field: 'data.clientData.caseId', type: 'string', required: true, description: 'Unique case id/lead id of the user sharing consent' },
+    ],
+    exampleRequest: {
+      body: JSON.stringify({
+        uans: ['1xxxxxxxxxx4'], entityId: 'U74120MH2015PTC265316', employerName: 'Perfios Software Solutions Private Limited',
+        employeeName: 'Swarnava Maitra', mobile: '8xxxxxxxx6', emailId: 'sawrnava.m@perfios.com', runPanFlow: true,
+        pan: 'DFKxxxx95K', showFailures: true, isLatestEmployer: true, pdf: true, consent: 'Y', clientData: { caseId: '123456' },
+      }, null, 2),
+    },
+    exampleResponse: JSON.stringify({
+      success: true,
+      data: {
+        result: {
+          email: { result: true, data: { email: 'sawrnava.m@perfios.com', result: true } },
+          nameLookup: { organizationName: 'Perfios Software Solution Private Limited', isNameExact: true, isEmployed: true, isRecent: true, isNameUnique: true, employeeName: 'SWARNAVA MAITRA' },
+          uan: [{ uan: '10xxxxxxxxxx', uanSource: 'pan', employer: [{ name: 'Perfios Software Solution Private Limited', isEmployed: true, uanNameMatch: true }], failures: [] }],
+          personalInfo: { name: 'SWARNAVA MAITRA', dateOfBirth: '1993-11-03', gender: 'M', pan: 'DFKxxxx95K', uan: '10xxxxxxxxxx' },
+          summary: { emailValid: true, nameLookup: { result: true }, uanLookup: { result: true, uanNameMatch: true }, waiveFi: true },
+          failures: [],
+          pdfLink: '',
+        },
+        request_id: '1a06cb30-9dad-41f2-8a05-7cf92504263d',
+        'status-code': '101',
+        clientData: { caseId: '123456' },
+      },
+    }, null, 2),
+    variants: EMPLOYMENT_ADVANCED_VARIANTS,
   },
 ]

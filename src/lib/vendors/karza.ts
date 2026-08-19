@@ -62,6 +62,9 @@ export const KARZA_MCA_SIGNATORIES_PATH = '/v2/mca-signatories'
 /** Udyog Aadhar Number endpoint path on the vendor. */
 export const KARZA_UDYOG_AADHAAR_PATH = '/v2/uam'
 
+/** Employment Verification Advanced (PAN Flow) endpoint path on the vendor. */
+export const KARZA_EMPLOYMENT_ADVANCED_PATH = '/v2/employment-verification-advanced'
+
 /**
  * Fields in the PAN request/response that are PII and must never be logged raw.
  * Used by the redactor before writing api_call_logs.
@@ -110,6 +113,12 @@ export const PAN_PII_FIELDS = [
   'aadhar',
   'AccountNumber',
   'OwnerName',
+  'dateOfBirth',
+  'fatherHusbandName',
+  'mobileNumber',
+  'passport',
+  'employeeName',
+  'employerName',
 ] as const
 
 /**
