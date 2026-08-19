@@ -47,6 +47,9 @@ export const KARZA_PASSPORT_PATH = '/v3/passport-verification'
 /** Vehicle RC Authentication - Advanced endpoint path on the vendor. */
 export const KARZA_RC_ADVANCED_PATH = '/v3/rc-advanced'
 
+/** GST Authentication endpoint path on the vendor. */
+export const KARZA_GST_PATH = '/gst/prod/v2/gstdetailed'
+
 /**
  * Fields in the PAN request/response that are PII and must never be logged raw.
  * Used by the redactor before writing api_call_logs.
@@ -80,6 +83,11 @@ export const PAN_PII_FIELDS = [
   'permanentAddress',
   'presentAddress',
   'rcMobileNo',
+  'gstin',
+  'mobNum',
+  'email',
+  'lgnm',
+  'tradeNam',
 ] as const
 
 /**

@@ -10,6 +10,7 @@ import { BANK_AC_SILENT_VARIANTS } from './bank-ac-silent-variants'
 import { DL_VARIANTS } from './dl-variants'
 import { PASSPORT_VARIANTS } from './passport-variants'
 import { RC_ADVANCED_VARIANTS } from './rc-advanced-variants'
+import { GST_VARIANTS } from './gst-variants'
 
 export type ParamIn = 'query' | 'header' | 'path' | 'body'
 export type SchemaType = 'string' | 'number' | 'integer' | 'boolean' | 'array' | 'object' | 'null'
@@ -2626,5 +2627,100 @@ export const API_DEFINITIONS: ApiDefinition[] = [
       },
     }, null, 2),
     variants: RC_ADVANCED_VARIANTS,
+  },
+
+  // ── Verification (KYC) — GST Authentication (TKYC) ────────────────────────
+  {
+    id: 'verify-gst',
+    label: 'GST Authentication',
+    group: 'Verification (KYC)',
+    method: 'POST',
+    path: '/api/verify/gst',
+    shortDescription: 'Authenticate a 15-digit GSTIN and fetch registration, business, and (optionally) turnover details',
+    description:
+      'Authenticates a 15-digit GSTIN issued by the Goods and Service Tax Network in India, returning legal name, ' +
+      'registration status, jurisdiction, and address details. When `additionalData` is true, also returns HSN/SAC ' +
+      'goods & services details, aggregated annual turnover slab, e-KYC/Aadhaar authentication flags, and gross ' +
+      'total income from IT returns. The portal calls the verification provider on your behalf using your ' +
+      'credentials; you only send your platform API key.',
+    authNote: 'Pass your API key as the `x-api-key` request header. The vendor key is injected server-side.',
+    params: [
+      { name: 'x-api-key', in: 'header', required: true, type: 'string', description: 'Your platform API key', example: 'env_abc123...' },
+      { name: 'consent', in: 'body', required: true, type: 'string', description: 'Consent is required to make the API request.', example: 'Y', enum: ['Y', 'N'] },
+      { name: 'additionalData', in: 'body', required: false, type: 'boolean', description: 'Optional Parameter: To fetch HSN Summary of the entity and certain additional data-points' },
+      { name: 'gstin', in: 'body', required: true, type: 'string', label: 'GSTIN', uppercase: true, placeholder: '27AAACR5055K1Z7', description: 'Fifteen character unique GSTIN to be authenticated', validation: { minLength: 15, maxLength: 15, hint: '15 chars' } },
+      { name: 'clientData', in: 'body', required: false, type: 'object', description: 'Data of the user sharing consent' },
+      { name: 'clientData.caseId', in: 'body', required: false, type: 'string', description: 'Unique case id/lead id of the user sharing consent', validation: { maxLength: 200, hint: 'Max-length 200' } },
+    ],
+    responseFields: [
+      { field: 'data.statusCode', type: 'integer', required: true, description: 'Internal Status Code that denotes the status of the request.' },
+      { field: 'data.requestId', type: 'string', required: true, description: 'Unique id of the API request.' },
+      { field: 'data.result', type: 'object', required: true, description: 'Response object for the given inputs' },
+      { field: 'data.result.canFlag', type: 'string', required: false, description: 'Flag to identify if an application for cancellation of GST has been filed' },
+      { field: 'data.result.contacted', type: 'object', required: false, description: 'Contact details fetched using internal database' },
+      { field: 'data.result.contacted.email', type: 'string', required: false, description: 'Email ID' },
+      { field: 'data.result.contacted.mobNum', type: 'string', required: false, description: 'Mobile Number' },
+      { field: 'data.result.contacted.name', type: 'string', required: false, description: 'Name' },
+      { field: 'data.result.ppr', type: 'string', required: false, description: 'NA' },
+      { field: 'data.result.cmpRt', type: 'string', required: false, description: 'Compliance rating if provided by GSP' },
+      { field: 'data.result.rgdt', type: 'string', required: false, description: 'Registration date under GST' },
+      { field: 'data.result.tradeNam', type: 'string', required: false, description: 'Trade Name' },
+      { field: 'data.result.nba', type: 'array', required: false, description: 'Nature of business registered under GST' },
+      { field: 'data.result.mbr', type: 'array', required: false, description: 'Member names if provided by GSP' },
+      { field: 'data.result.adadr', type: 'array', required: false, description: 'Address information for additional places of business' },
+      { field: 'data.result.pradr', type: 'object', required: false, description: 'Address information for principal place of business' },
+      { field: 'data.result.stjCd', type: 'string', required: false, description: 'State Jurisdiction Code' },
+      { field: 'data.result.lstupdt', type: 'string', required: false, description: 'Last Updated' },
+      { field: 'data.result.gstin', type: 'string', required: false, description: 'Given GSTIN' },
+      { field: 'data.result.ctjCd', type: 'string', required: false, description: 'Central Jurisdiction Code' },
+      { field: 'data.result.stj', type: 'string', required: false, description: 'State Jurisdiction' },
+      { field: 'data.result.dty', type: 'string', required: false, description: 'Taxpayer Type' },
+      { field: 'data.result.cxdt', type: 'string', required: false, description: 'Date of Cancellation of Registration' },
+      { field: 'data.result.ctb', type: 'string', required: false, description: 'Constitution of Business' },
+      { field: 'data.result.sts', type: 'string', required: false, description: 'Current status of registration under GST' },
+      { field: 'data.result.lgnm', type: 'string', required: false, description: 'Legal Name of the Business or Individual corresponding to the GSTIN' },
+      { field: 'data.result.ctj', type: 'string', required: false, description: 'Central Jurisdiction' },
+      { field: 'data.result.bzgddtls', type: 'array', required: false, description: '(additionalData) HSN details for Goods' },
+      { field: 'data.result.bzsdtls', type: 'array', required: false, description: '(additionalData) SAC details for services' },
+      { field: 'data.result.aggreTurnOver', type: 'string', required: false, description: '(additionalData) Aggregated annual PAN level turnover slab of the entity' },
+      { field: 'data.result.mandatedeInvoice', type: 'string', required: false, description: '(additionalData) Whether E-Invoice is mandatory for the entity' },
+      { field: 'data.result.ntcrbs', type: 'string', required: false, description: '(additionalData) Nature Of Core Business Activity' },
+      { field: 'data.result.adhrVFlag', type: 'string', required: false, description: '(additionalData) Whether Aadhaar authenticated' },
+      { field: 'data.result.gtiFY', type: 'string', required: false, description: '(additionalData) Gross total income pertaining to the financial year' },
+      { field: 'data.result.ekycVFlag', type: 'string', required: false, description: '(additionalData) Whether e-KYC verified' },
+      { field: 'data.result.percentTaxInCash', type: 'string', required: false, description: '(additionalData) Percentage of tax payment in cash' },
+      { field: 'data.result.compDetl', type: 'boolean', required: false, description: '(additionalData) Whether compliance details available' },
+      { field: 'data.result.gti', type: 'string', required: false, description: '(additionalData) Gross total income as per income-tax returns' },
+      { field: 'data.result.aggreTurnOverFY', type: 'string', required: false, description: '(additionalData) Aggregated annual PAN level turnover slab pertaining to the financial year' },
+      { field: 'data.result.percentTaxInCashFY', type: 'string', required: false, description: '(additionalData) Percentage of tax payment in cash pertaining to the financial year' },
+      { field: 'data.clientData', type: 'object', required: true, description: 'Data of the user sharing consent' },
+      { field: 'data.clientData.caseId', type: 'string', required: true, description: 'Unique case id/lead id of the user sharing consent' },
+    ],
+    exampleRequest: {
+      body: JSON.stringify({ consent: 'Y', additionalData: false, gstin: '27AAACR5055K1Z7', clientData: { caseId: '123456' } }, null, 2),
+    },
+    exampleResponse: JSON.stringify({
+      success: true,
+      data: {
+        requestId: 'e17b624f-52ea-48d0-bfdb-320885d4034d',
+        result: {
+          canFlag: null,
+          contacted: { email: '', mobNum: '', name: null },
+          ppr: null, cmpRt: 'NA', rgdt: '01/07/2017', tradeNam: 'RELIANCE INDUSTRIES LIMITED',
+          nba: ['Factory / Manufacturing', 'Retail Business'],
+          mbr: ['Nikhil Rasiklal Meswani'],
+          adadr: [],
+          pradr: { adr: '5, 5, TTC Industrial Area, Thane, Maharashtra, 400701', em: '', mb: '', ntr: 'Factory / Manufacturing', addr: 'NA', lastUpdatedDate: 'NA' },
+          stjCd: null, lstupdt: null, gstin: '27AAACR5055K1Z7', ctjCd: null,
+          stj: 'State - Maharashtra,Zone - Thane,Division - RAIGAD,Charge - URAN_701',
+          dty: 'Regular', cxdt: null, ctb: 'Public Limited Company', sts: 'Active',
+          lgnm: 'RELIANCE INDUSTRIES LIMITED',
+          ctj: 'Commissionerate - BELAPUR,Division - DIVISION IV,Range - RANGE-IV (Jurisdictional Office)',
+        },
+        statusCode: 101,
+        clientData: { caseId: '123456' },
+      },
+    }, null, 2),
+    variants: GST_VARIANTS,
   },
 ]

@@ -45,7 +45,7 @@ PDFs will be added over time** — that's expected; step 1 absorbs them.
 | 9 | Passport Verification | verify-passport | DONE ✅ | 2026-08-19 · single scenario; all body fields optional per PDF (fileNo+dob OR passportNo+doi+name combos) |
 | 10 | Passport Verification Advanced | verify-passport-advanced | BLOCKED | 2026-08-19 · Same async/kyc-advanced-plus/OCR-image pattern as #8 (DL Advanced) — HTTP response is just an ack, real result via webhook/email. Same blocker: needs webhook receiver + session-correlated live push. Deferred with #8. |
 | 11 | Vehicle RC Authentication - Advanced | verify-rc-advanced | DONE ✅ | 2026-08-19 · single scenario; ~50 flat response fields |
-| 12 | GST Authentication | verify-gst | TODO | |
+| 12 | GST Authentication | verify-gst | DONE ✅ | 2026-08-19 · 2 scenarios (additionalData true/false) as variants[] |
 | 13 | GST Advanced | verify-gst-advanced | TODO | |
 | 14 | GST Search Basis PAN | verify-gst-by-pan | TODO | |
 | 15 | MCA Signatories | verify-mca-signatories | TODO | |
