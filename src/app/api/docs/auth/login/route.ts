@@ -13,7 +13,11 @@ const BodySchema = z.object({
 // Cookies must be scoped to the app's real path. Behind the gateway the app lives
 // at /demo/api-playground, so Path=/docs would NOT match /demo/api-playground/docs
 // and the browser would never send the session cookie back → redirect loop.
-const COOKIE_PATH = `${process.env.__NEXT_ROUTER_BASEPATH ?? ''}/docs`
+//
+// __NEXT_ROUTER_BASEPATH only exists in client-bundle code (webpack inlines it there);
+// it is undefined in server route handlers, so it can't be used here. next.config.mjs's
+// basePath is a hardcoded literal, not env-driven, so mirror that literal directly.
+const COOKIE_PATH = `${process.env.NEXT_PUBLIC_BASE_PATH ?? '/demo/api-playground'}/docs`
 
 export async function POST(req: NextRequest) {
   let body: unknown
