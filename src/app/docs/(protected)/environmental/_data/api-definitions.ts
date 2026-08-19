@@ -1,5 +1,7 @@
 import { BASE_URL } from './introduction'
 import { PAN_PROFILE_VARIANTS } from './pan-profile-variants'
+import { PAN_STATUS_VARIANTS } from './pan-status-variants'
+import { PAN_DOB_STATUS_VARIANTS } from './pan-dob-status-variants'
 
 export type ParamIn = 'query' | 'header' | 'path' | 'body'
 export type SchemaType = 'string' | 'number' | 'integer' | 'boolean' | 'array' | 'object' | 'null'
@@ -1753,5 +1755,196 @@ export const API_DEFINITIONS: ApiDefinition[] = [
       },
     }, null, 2),
     variants: PAN_PROFILE_VARIANTS,
+  },
+
+  // ── Verification (KYC) — PAN Status Check (TKYC) ──────────────────────────
+  {
+    id: 'verify-pan-status',
+    label: 'PAN Status',
+    group: 'Verification (KYC)',
+    method: 'POST',
+    path: '/api/verify/pan-status',
+    shortDescription: 'Authenticate a PAN and check its status (Active/Inactive) plus name & DOB match against ITD records',
+    description:
+      'Authenticates the status and details of a given PAN. Returns whether the PAN is Active or Inactive and ' +
+      'whether the supplied name and date of birth match the Income Tax Department (ITD) records. The portal ' +
+      'calls the verification provider on your behalf using your credentials; you only send your platform API ' +
+      'key. Consent must be "Y" — you confirm the end user has consented to the check.',
+    authNote: 'Pass your API key as the `x-api-key` request header. The vendor key is injected server-side.',
+    params: [
+      {
+        name: 'x-api-key',
+        in: 'header',
+        required: true,
+        type: 'string',
+        description: 'Your platform API key',
+        example: 'env_abc123...',
+      },
+      {
+        name: 'consent',
+        in: 'body',
+        required: true,
+        type: 'string',
+        description: 'Consent is required to make the API request.',
+        example: 'Y',
+        enum: ['Y', 'N'],
+      },
+      {
+        name: 'pan',
+        in: 'body',
+        required: true,
+        type: 'string',
+        label: 'PAN Number',
+        uppercase: true,
+        placeholder: 'ABCDE1234F',
+        description: 'PAN Number to be authenticated',
+        validation: { minLength: 10, maxLength: 10, pattern: '^[A-Za-z]{5}\\d{4}[A-Za-z]{1}$', hint: '5 letters, 4 digits, 1 letter' },
+      },
+      {
+        name: 'name',
+        in: 'body',
+        required: true,
+        type: 'string',
+        description: 'Exact name as per PAN',
+      },
+      {
+        name: 'dob',
+        in: 'body',
+        required: true,
+        type: 'string',
+        label: 'Date of Birth',
+        placeholder: 'DD/MM/YYYY',
+        description: 'Date of birth as per PAN',
+        validation: { pattern: '^\\d{1,2}/\\d{1,2}/\\d{4}$', hint: 'DD/MM/YYYY' },
+      },
+      {
+        name: 'clientData',
+        in: 'body',
+        required: false,
+        type: 'object',
+        description: 'Data of the user sharing consent',
+      },
+      {
+        name: 'clientData.caseId',
+        in: 'body',
+        required: false,
+        type: 'string',
+        description: 'Unique case id/lead id of the user sharing consent',
+        validation: { maxLength: 200, hint: 'Max-length 200' },
+      },
+    ],
+    responseFields: [
+      { field: 'data.status-code',      type: 'string',        required: true,  description: 'Internal Status Code that denotes the status of the request.' },
+      { field: 'data.request_id',       type: 'string',        required: true,  description: 'Unique id of the API request.' },
+      { field: 'data.result',           type: 'object',        required: true,  description: 'Response object for the given inputs.' },
+      { field: 'data.result.status',    type: 'string',        required: false, description: 'Status of the PAN. [Active or Inactive]' },
+      { field: 'data.result.duplicate', type: 'boolean|null',  required: false, description: 'Whether the PAN has been tagged as duplicate by Income Tax Department (Please Note - This detail is no longer supported now)' },
+      { field: 'data.result.nameMatch', type: 'boolean',       required: false, description: 'Whether the given name matches with the ITD Records' },
+      { field: 'data.result.dobMatch',  type: 'boolean',       required: false, description: 'Whether the given date of birth matches with the ITD Records' },
+      { field: 'data.clientData',       type: 'object',        required: true,  description: 'Data of the user sharing consent' },
+      { field: 'data.clientData.caseId', type: 'string',       required: true,  description: 'Unique case id/lead id of the user sharing consent' },
+    ],
+    exampleRequest: {
+      body: JSON.stringify({ pan: 'ABCDE1234F', name: 'Omkar Milind Shirhatti', dob: '17/08/1987', consent: 'Y' }, null, 2),
+    },
+    exampleResponse: JSON.stringify({
+      success: true,
+      data: {
+        result: {
+          status: 'Active',
+          duplicate: null,
+          nameMatch: true,
+          dobMatch: true,
+        },
+        request_id: 'deff5ed8-0460-11e9-a082-4742912ca12a',
+        'status-code': '101',
+        clientData: { caseId: '123456' },
+      },
+    }, null, 2),
+    variants: PAN_STATUS_VARIANTS,
+  },
+
+  // ── Verification (KYC) — PAN DOB Status (TKYC) ──────────────────────────
+  {
+    id: 'verify-pan-dob-status',
+    label: 'PAN DOB Status',
+    group: 'Verification (KYC)',
+    method: 'POST',
+    path: '/api/verify/pan-dob-status',
+    shortDescription: 'Verify a PAN and fetch basic profile: status (Active/Inactive), name, and DOB',
+    description:
+      'Verifies an Indian PAN (Permanent Account Number) and returns basic profile information — PAN status ' +
+      '(Active or Inactive), name, and date of birth from Income Tax Department (ITD) records. The portal calls ' +
+      'the verification provider on your behalf using your credentials; you only send your platform API key. ' +
+      'Consent must be "Y" — you confirm the end user has consented to the check.',
+    authNote: 'Pass your API key as the `x-api-key` request header. The vendor key is injected server-side.',
+    params: [
+      {
+        name: 'x-api-key',
+        in: 'header',
+        required: true,
+        type: 'string',
+        description: 'Your platform API key',
+        example: 'env_abc123...',
+      },
+      {
+        name: 'consent',
+        in: 'body',
+        required: true,
+        type: 'string',
+        description: 'Consent is required to make the API request.',
+        example: 'Y',
+        enum: ['Y', 'N'],
+      },
+      {
+        name: 'pan',
+        in: 'body',
+        required: true,
+        type: 'string',
+        label: 'PAN Number',
+        uppercase: true,
+        placeholder: 'ABCDE1234F',
+        description: 'PAN Number to be authenticated',
+        validation: { minLength: 10, maxLength: 10, pattern: '^[A-Za-z]{5}\\d{4}[A-Za-z]{1}$', hint: '5 letters, 4 digits, 1 letter' },
+      },
+      {
+        name: 'clientData',
+        in: 'body',
+        required: false,
+        type: 'object',
+        description: 'Data of the user sharing consent',
+      },
+      {
+        name: 'clientData.caseId',
+        in: 'body',
+        required: false,
+        type: 'string',
+        description: 'Unique case id/lead id of the user sharing consent',
+        validation: { maxLength: 200, hint: 'Max-length 200' },
+      },
+    ],
+    responseFields: [
+      { field: 'data.statusCode',        type: 'integer', required: true,  description: 'Internal Status Code that denotes the status of the request.' },
+      { field: 'data.requestId',         type: 'string',  required: true,  description: 'Unique id of the API request.' },
+      { field: 'data.result',            type: 'object',  required: true,  description: 'Response object for the given inputs.' },
+      { field: 'data.result.status',     type: 'string',  required: false, description: 'PAN Status (Active/Inactive)' },
+      { field: 'data.result.name',       type: 'string',  required: false, description: 'Complete Name of PAN holder' },
+      { field: 'data.result.dob',        type: 'string',  required: false, description: 'Date of Birth/Incorporation of PAN holder' },
+      { field: 'data.clientData',        type: 'object',  required: true,  description: 'Data of the user sharing consent' },
+      { field: 'data.clientData.caseId', type: 'string',  required: true,  description: 'Unique case id/lead id of the user sharing consent' },
+    ],
+    exampleRequest: {
+      body: JSON.stringify({ pan: 'ABCDE1234E', consent: 'Y', clientData: { caseId: '123456' } }, null, 2),
+    },
+    exampleResponse: JSON.stringify({
+      success: true,
+      data: {
+        requestId: '8c506938-9f57-4490-aa08-fc3659c06d79',
+        result: { status: 'Active', name: 'abc', dob: '1992-04-06' },
+        statusCode: 101,
+        clientData: { caseId: '123456' },
+      },
+    }, null, 2),
+    variants: PAN_DOB_STATUS_VARIANTS,
   },
 ]

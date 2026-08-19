@@ -17,6 +17,12 @@ export const KARZA_AUTH_HEADER = 'x-karza-key'
 /** PAN Profile endpoint path on the vendor. */
 export const KARZA_PAN_PATH = '/v3/pan-profile'
 
+/** PAN Status Check (authentication) endpoint path on the vendor. */
+export const KARZA_PAN_STATUS_PATH = '/v2/pan-authentication'
+
+/** PAN DOB Status (basic profile) endpoint path on the vendor. */
+export const KARZA_PAN_DOB_STATUS_PATH = '/v3/pan-profile-basic'
+
 /**
  * Fields in the PAN request/response that are PII and must never be logged raw.
  * Used by the redactor before writing api_call_logs.
