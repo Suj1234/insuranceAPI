@@ -1,5 +1,25 @@
 import { BASE_URL } from './introduction'
 import { PAN_PROFILE_VARIANTS } from './pan-profile-variants'
+import { PAN_STATUS_VARIANTS } from './pan-status-variants'
+import { PAN_DOB_STATUS_VARIANTS } from './pan-dob-status-variants'
+import { PAN_LINK_UNIQUE_CONSENT_VARIANTS } from './pan-link-unique-consent-variants'
+import { PAN_LINK_UNIQUE_CHECK_VARIANTS } from './pan-link-unique-check-variants'
+import { PAN_LINK_ANY_VARIANTS } from './pan-link-any-variants'
+import { BANK_AC_ADVANCED_VARIANTS } from './bank-ac-advanced-variants'
+import { BANK_AC_SILENT_VARIANTS } from './bank-ac-silent-variants'
+import { DL_VARIANTS } from './dl-variants'
+import { PASSPORT_VARIANTS } from './passport-variants'
+import { RC_ADVANCED_VARIANTS } from './rc-advanced-variants'
+import { GST_VARIANTS } from './gst-variants'
+import { GST_ADVANCED_VARIANTS, gstinEntryFields } from './gst-advanced-variants'
+import { GST_BY_PAN_VARIANTS } from './gst-by-pan-variants'
+import { MCA_SIGNATORIES_VARIANTS } from './mca-signatories-variants'
+import { UDYOG_AADHAAR_VARIANTS } from './udyog-aadhaar-variants'
+import { EMPLOYMENT_ADVANCED_VARIANTS, employmentAdvancedResponseFields } from './employment-advanced-variants'
+import { DIGITAL_FOOTPRINT_MOBILE_VARIANTS } from './digital-footprint-mobile-variants'
+import { DIGITAL_FOOTPRINT_EMAIL_VARIANTS } from './digital-footprint-email-variants'
+import { EMAIL_FRAUD_VARIANTS, emailFraudResponseFields } from './email-fraud-variants'
+import { MOBILE_PREFILL_VARIANTS } from './mobile-prefill-variants'
 
 export type ParamIn = 'query' | 'header' | 'path' | 'body'
 export type SchemaType = 'string' | 'number' | 'integer' | 'boolean' | 'array' | 'object' | 'null'
@@ -65,7 +85,15 @@ export type AboutBlock =
   | { type: 'callout';    label: string; text: string }
   | { type: 'divider' }
 
-export type ApiGroupName = 'Environmental' | 'Flood & Hydrology' | 'Verification (KYC)'
+export type ApiGroupName =
+  | 'Environmental'
+  | 'Flood & Hydrology'
+  | 'KYC Authentication - Retail'
+  | 'KYC Authentication - Commercial'
+  | 'Employment & Income'
+  | 'Asset & Vehicle'
+  | 'Banking & Payments'
+  | 'Digital Essentials'
 
 export interface ApiDefinition {
   id: string
@@ -1565,7 +1593,7 @@ export const API_DEFINITIONS: ApiDefinition[] = [
   {
     id: 'verify-pan',
     label: 'PAN Profile',
-    group: 'Verification (KYC)',
+    group: 'KYC Authentication - Retail',
     method: 'POST',
     path: '/api/verify/pan',
     shortDescription: 'Verify a PAN and fetch the linked identity profile (name, address, Aadhaar-link status)',
@@ -1753,5 +1781,1566 @@ export const API_DEFINITIONS: ApiDefinition[] = [
       },
     }, null, 2),
     variants: PAN_PROFILE_VARIANTS,
+  },
+
+  // ── Verification (KYC) — PAN Status Check (TKYC) ──────────────────────────
+  {
+    id: 'verify-pan-status',
+    label: 'PAN Status',
+    group: 'KYC Authentication - Retail',
+    method: 'POST',
+    path: '/api/verify/pan-status',
+    shortDescription: 'Authenticate a PAN and check its status (Active/Inactive) plus name & DOB match against ITD records',
+    description:
+      'Authenticates the status and details of a given PAN. Returns whether the PAN is Active or Inactive and ' +
+      'whether the supplied name and date of birth match the Income Tax Department (ITD) records. The portal ' +
+      'calls the verification provider on your behalf using your credentials; you only send your platform API ' +
+      'key. Consent must be "Y" — you confirm the end user has consented to the check.',
+    authNote: 'Pass your API key as the `x-api-key` request header. The vendor key is injected server-side.',
+    params: [
+      {
+        name: 'x-api-key',
+        in: 'header',
+        required: true,
+        type: 'string',
+        description: 'Your platform API key',
+        example: 'env_abc123...',
+      },
+      {
+        name: 'consent',
+        in: 'body',
+        required: true,
+        type: 'string',
+        description: 'Consent is required to make the API request.',
+        example: 'Y',
+        enum: ['Y', 'N'],
+      },
+      {
+        name: 'pan',
+        in: 'body',
+        required: true,
+        type: 'string',
+        label: 'PAN Number',
+        uppercase: true,
+        placeholder: 'ABCDE1234F',
+        description: 'PAN Number to be authenticated',
+        validation: { minLength: 10, maxLength: 10, pattern: '^[A-Za-z]{5}\\d{4}[A-Za-z]{1}$', hint: '5 letters, 4 digits, 1 letter' },
+      },
+      {
+        name: 'name',
+        in: 'body',
+        required: true,
+        type: 'string',
+        description: 'Exact name as per PAN',
+      },
+      {
+        name: 'dob',
+        in: 'body',
+        required: true,
+        type: 'string',
+        label: 'Date of Birth',
+        placeholder: 'DD/MM/YYYY',
+        description: 'Date of birth as per PAN',
+        validation: { pattern: '^\\d{1,2}/\\d{1,2}/\\d{4}$', hint: 'DD/MM/YYYY' },
+      },
+      {
+        name: 'clientData',
+        in: 'body',
+        required: false,
+        type: 'object',
+        description: 'Data of the user sharing consent',
+      },
+      {
+        name: 'clientData.caseId',
+        in: 'body',
+        required: false,
+        type: 'string',
+        description: 'Unique case id/lead id of the user sharing consent',
+        validation: { maxLength: 200, hint: 'Max-length 200' },
+      },
+    ],
+    responseFields: [
+      { field: 'data.status-code',      type: 'string',        required: true,  description: 'Internal Status Code that denotes the status of the request.' },
+      { field: 'data.request_id',       type: 'string',        required: true,  description: 'Unique id of the API request.' },
+      { field: 'data.result',           type: 'object',        required: true,  description: 'Response object for the given inputs.' },
+      { field: 'data.result.status',    type: 'string',        required: false, description: 'Status of the PAN. [Active or Inactive]' },
+      { field: 'data.result.duplicate', type: 'boolean|null',  required: false, description: 'Whether the PAN has been tagged as duplicate by Income Tax Department (Please Note - This detail is no longer supported now)' },
+      { field: 'data.result.nameMatch', type: 'boolean',       required: false, description: 'Whether the given name matches with the ITD Records' },
+      { field: 'data.result.dobMatch',  type: 'boolean',       required: false, description: 'Whether the given date of birth matches with the ITD Records' },
+      { field: 'data.clientData',       type: 'object',        required: true,  description: 'Data of the user sharing consent' },
+      { field: 'data.clientData.caseId', type: 'string',       required: true,  description: 'Unique case id/lead id of the user sharing consent' },
+    ],
+    exampleRequest: {
+      body: JSON.stringify({ pan: 'ABCDE1234F', name: 'Omkar Milind Shirhatti', dob: '17/08/1987', consent: 'Y' }, null, 2),
+    },
+    exampleResponse: JSON.stringify({
+      success: true,
+      data: {
+        result: {
+          status: 'Active',
+          duplicate: null,
+          nameMatch: true,
+          dobMatch: true,
+        },
+        request_id: 'deff5ed8-0460-11e9-a082-4742912ca12a',
+        'status-code': '101',
+        clientData: { caseId: '123456' },
+      },
+    }, null, 2),
+    variants: PAN_STATUS_VARIANTS,
+  },
+
+  // ── Verification (KYC) — PAN DOB Status (TKYC) ──────────────────────────
+  {
+    id: 'verify-pan-dob-status',
+    label: 'PAN DOB Status',
+    group: 'KYC Authentication - Retail',
+    method: 'POST',
+    path: '/api/verify/pan-dob-status',
+    shortDescription: 'Verify a PAN and fetch basic profile: status (Active/Inactive), name, and DOB',
+    description:
+      'Verifies an Indian PAN (Permanent Account Number) and returns basic profile information — PAN status ' +
+      '(Active or Inactive), name, and date of birth from Income Tax Department (ITD) records. The portal calls ' +
+      'the verification provider on your behalf using your credentials; you only send your platform API key. ' +
+      'Consent must be "Y" — you confirm the end user has consented to the check.',
+    authNote: 'Pass your API key as the `x-api-key` request header. The vendor key is injected server-side.',
+    params: [
+      {
+        name: 'x-api-key',
+        in: 'header',
+        required: true,
+        type: 'string',
+        description: 'Your platform API key',
+        example: 'env_abc123...',
+      },
+      {
+        name: 'consent',
+        in: 'body',
+        required: true,
+        type: 'string',
+        description: 'Consent is required to make the API request.',
+        example: 'Y',
+        enum: ['Y', 'N'],
+      },
+      {
+        name: 'pan',
+        in: 'body',
+        required: true,
+        type: 'string',
+        label: 'PAN Number',
+        uppercase: true,
+        placeholder: 'ABCDE1234F',
+        description: 'PAN Number to be authenticated',
+        validation: { minLength: 10, maxLength: 10, pattern: '^[A-Za-z]{5}\\d{4}[A-Za-z]{1}$', hint: '5 letters, 4 digits, 1 letter' },
+      },
+      {
+        name: 'clientData',
+        in: 'body',
+        required: false,
+        type: 'object',
+        description: 'Data of the user sharing consent',
+      },
+      {
+        name: 'clientData.caseId',
+        in: 'body',
+        required: false,
+        type: 'string',
+        description: 'Unique case id/lead id of the user sharing consent',
+        validation: { maxLength: 200, hint: 'Max-length 200' },
+      },
+    ],
+    responseFields: [
+      { field: 'data.statusCode',        type: 'integer', required: true,  description: 'Internal Status Code that denotes the status of the request.' },
+      { field: 'data.requestId',         type: 'string',  required: true,  description: 'Unique id of the API request.' },
+      { field: 'data.result',            type: 'object',  required: true,  description: 'Response object for the given inputs.' },
+      { field: 'data.result.status',     type: 'string',  required: false, description: 'PAN Status (Active/Inactive)' },
+      { field: 'data.result.name',       type: 'string',  required: false, description: 'Complete Name of PAN holder' },
+      { field: 'data.result.dob',        type: 'string',  required: false, description: 'Date of Birth/Incorporation of PAN holder' },
+      { field: 'data.clientData',        type: 'object',  required: true,  description: 'Data of the user sharing consent' },
+      { field: 'data.clientData.caseId', type: 'string',  required: true,  description: 'Unique case id/lead id of the user sharing consent' },
+    ],
+    exampleRequest: {
+      body: JSON.stringify({ pan: 'ABCDE1234E', consent: 'Y', clientData: { caseId: '123456' } }, null, 2),
+    },
+    exampleResponse: JSON.stringify({
+      success: true,
+      data: {
+        requestId: '8c506938-9f57-4490-aa08-fc3659c06d79',
+        result: { status: 'Active', name: 'abc', dob: '1992-04-06' },
+        statusCode: 101,
+        clientData: { caseId: '123456' },
+      },
+    }, null, 2),
+    variants: PAN_DOB_STATUS_VARIANTS,
+  },
+
+  // ── Verification (KYC) — PAN Link Status: Share Consent (TKYC) ──────────
+  {
+    id: 'verify-pan-link-unique-consent',
+    label: 'PAN Link Status (Consent)',
+    group: 'KYC Authentication - Retail',
+    method: 'POST',
+    path: '/api/verify/pan-link-unique-consent',
+    shortDescription: 'Step 1 of 2 — share consent and receive an accessKey for the PAN-Aadhaar link check',
+    description:
+      'First step of the PAN Link Status (unique Aadhaar) flow. Captures the end user\'s consent and returns an ' +
+      'accessKey valid for 30 minutes. Pass that accessKey into "PAN Link Status (Check)" along with the PAN and ' +
+      'Aadhaar number to complete the check. The portal calls the verification provider on your behalf using ' +
+      'your credentials; you only send your platform API key.',
+    authNote: 'Pass your API key as the `x-api-key` request header. The vendor key is injected server-side.',
+    params: [
+      { name: 'x-api-key', in: 'header', required: true, type: 'string', description: 'Your platform API key', example: 'env_abc123...' },
+      { name: 'consent', in: 'body', required: true, type: 'string', description: 'Consent is required to make the API request.', example: 'Y', enum: ['Y', 'N'] },
+      { name: 'lat', in: 'body', required: false, type: 'string', description: 'Latitude details of the user sharing consent (either IP or lat/long required)', validation: { hint: 'Must be valid coordinates' } },
+      { name: 'long', in: 'body', required: false, type: 'string', description: 'Longitude details of the user sharing consent (either IP or lat/long required)', validation: { hint: 'Must be valid coordinates' } },
+      { name: 'ipAddress', in: 'body', required: false, type: 'string', description: 'IP address of the user sharing consent (either IP or lat/long required)', placeholder: '12.12.12.12', validation: { hint: 'A.B.C.D, each 0-255' } },
+      { name: 'userAgent', in: 'body', required: true, type: 'string', description: 'A string that lets servers and network peers identify the application, operating system, vendor, and/or version of the requesting user agent', validation: { maxLength: 256, hint: 'Max-length 256' } },
+      { name: 'deviceId', in: 'body', required: false, type: 'string', description: 'User Device ID details', validation: { maxLength: 200, hint: 'Max-length 200' } },
+      { name: 'deviceInfo', in: 'body', required: false, type: 'string', description: 'User Device Information', validation: { maxLength: 200, hint: 'Max-length 200' } },
+      { name: 'name', in: 'body', required: true, type: 'string', description: 'Name of the user sharing consent' },
+      { name: 'consentTime', in: 'body', required: true, type: 'string', description: 'Current Unix/Epoch Timestamp', validation: { hint: 'Must be valid epoch time not before 5 minutes from now' } },
+      { name: 'consentText', in: 'body', required: true, type: 'string', description: 'Consent body accepted by the user', validation: { maxLength: 10000, hint: 'Max-length 10000' } },
+      { name: 'clientData', in: 'body', required: true, type: 'object', description: 'Data of the user sharing consent' },
+      { name: 'clientData.caseId', in: 'body', required: true, type: 'string', description: 'Unique case id/lead id of the user sharing consent', validation: { maxLength: 200, hint: 'Max-length 200' } },
+    ],
+    responseFields: [
+      { field: 'data.statusCode', type: 'integer', required: true, description: 'Internal Status Code that denotes the status of the request.' },
+      { field: 'data.requestId', type: 'string', required: true, description: 'Unique id of the API request.' },
+      { field: 'data.result', type: 'object', required: true, description: 'Response object for the given inputs.' },
+      { field: 'data.result.accessKey', type: 'string', required: false, description: 'Access Key to invoke the next set of API/s' },
+      { field: 'data.result.accessKeyValidity', type: 'string', required: false, description: 'Validity of the unique access key in Unix/Epoch Timestamp format (valid for 30 minutes from shared consent timestamp)' },
+      { field: 'data.result.message', type: 'string', required: false, description: 'Message to display the status of consent capture' },
+      { field: 'data.clientData', type: 'object', required: true, description: 'Data of the user sharing consent (passed as is)' },
+      { field: 'data.clientData.caseId', type: 'string', required: true, description: 'Unique case id/lead id of the user sharing consent' },
+    ],
+    exampleRequest: {
+      body: JSON.stringify({
+        lat: '19', long: '82', ipAddress: '12.12.12.12',
+        userAgent: 'Mozilla/5.0 (X11; Fedora; Linux x86_64; rv:80.0) Gecko/20100101 Firefox/80.0',
+        deviceId: 'xxxx', deviceInfo: '1234', consent: 'Y', name: 'Rahul Kumar',
+        consentTime: '1612442987', consentText: 'Customer consent body to be shared here',
+        clientData: { caseId: '123456' },
+      }, null, 2),
+    },
+    exampleResponse: JSON.stringify({
+      success: true,
+      data: {
+        result: { accessKey: '2cc1610c-3f25-4695-9d7c-4e391758898c', accessKeyValidity: '1612446446', message: 'Consent Accepted' },
+        statusCode: 101,
+        requestId: '2cc1610c-3f25-4695-9d7c-4e391758898c',
+        clientData: { caseId: '123456' },
+      },
+    }, null, 2),
+    variants: PAN_LINK_UNIQUE_CONSENT_VARIANTS,
+  },
+
+  // ── Verification (KYC) — PAN Link Status: Check (TKYC) ───────────────────
+  {
+    id: 'verify-pan-link-unique-check',
+    label: 'PAN Link Status (Check)',
+    group: 'KYC Authentication - Retail',
+    method: 'POST',
+    path: '/api/verify/pan-link-unique-check',
+    shortDescription: 'Step 2 of 2 — check whether a PAN is linked to a specific Aadhaar number',
+    description:
+      'Second step of the PAN Link Status (unique Aadhaar) flow. Requires the accessKey returned by "PAN Link ' +
+      'Status (Consent)", plus the PAN and Aadhaar number, and returns whether that PAN is linked to that ' +
+      'specific Aadhaar. The portal calls the verification provider on your behalf using your credentials; you ' +
+      'only send your platform API key.',
+    authNote: 'Pass your API key as the `x-api-key` request header. The vendor key is injected server-side.',
+    params: [
+      { name: 'x-api-key', in: 'header', required: true, type: 'string', description: 'Your platform API key', example: 'env_abc123...' },
+      { name: 'consent', in: 'body', required: true, type: 'string', description: 'Consent is required to make the API request.', example: 'Y', enum: ['Y', 'N'] },
+      { name: 'pan', in: 'body', required: true, type: 'string', label: 'PAN Number', uppercase: true, placeholder: 'ABCDE1234F', description: 'PAN number of the user', validation: { minLength: 10, maxLength: 10, pattern: '^[A-Za-z]{5}\\d{4}[A-Za-z]{1}$', hint: '5 letters, 4 digits, 1 letter' } },
+      { name: 'aadhaarNo', in: 'body', required: true, type: 'string', label: 'Aadhaar Number', placeholder: '123456789012', description: '12 digit Aadhaar Number of the user', validation: { minLength: 12, maxLength: 12, pattern: '^[0-9]{12}$', hint: '12 digits' } },
+      { name: 'accessKey', in: 'body', required: true, type: 'string', description: 'Access Key to invoke the next set of API/s (from the Share Consent step)' },
+      { name: 'clientData', in: 'body', required: true, type: 'object', description: 'Data of the user sharing consent (passed as is)' },
+      { name: 'clientData.caseId', in: 'body', required: true, type: 'string', description: 'Unique case id/lead id of the user sharing consent', validation: { maxLength: 200, hint: 'Max-length 200' } },
+    ],
+    responseFields: [
+      { field: 'data.statusCode', type: 'integer', required: true, description: 'Internal Status Code that denotes the status of the request.' },
+      { field: 'data.requestId', type: 'string', required: true, description: 'Unique id of the API request.' },
+      { field: 'data.result', type: 'object', required: true, description: 'Response object for the given inputs.' },
+      { field: 'data.result.message', type: 'string', required: false, description: 'Message that describes whether PAN is linked to Aadhaar Number' },
+      { field: 'data.result.linked', type: 'boolean', required: false, description: 'Status whether PAN is linked or not (True/False)' },
+      { field: 'data.clientData', type: 'object', required: true, description: 'Data of the user sharing consent (passed as is)' },
+      { field: 'data.clientData.caseId', type: 'string', required: true, description: 'Unique case id/lead id of the user sharing consent' },
+    ],
+    exampleRequest: {
+      body: JSON.stringify({
+        pan: 'BXXXXXXXXR', aadhaarNo: 'xxxxxxxx6917', consent: 'Y',
+        accessKey: '5d08f3a0-3a5c-43e4-a4af-1d496bd18cdc',
+        clientData: { caseId: '123456' },
+      }, null, 2),
+    },
+    exampleResponse: JSON.stringify({
+      success: true,
+      data: {
+        requestId: '5c42f558-e193-4ffc-baaf-591383ccbac7',
+        result: { message: 'Your PAN is linked to Aadhaar Number XXXX XXXX 6917', linked: true },
+        statusCode: 101,
+        clientData: { caseId: '123456' },
+      },
+    }, null, 2),
+    variants: PAN_LINK_UNIQUE_CHECK_VARIANTS,
+  },
+
+  // ── Verification (KYC) — PAN Link Status (any Aadhaar) (TKYC) ────────────
+  {
+    id: 'verify-pan-link-any',
+    label: 'PAN Link Status (Any Aadhaar)',
+    group: 'KYC Authentication - Retail',
+    method: 'POST',
+    path: '/api/verify/pan-link-any',
+    shortDescription: 'Check whether a PAN is linked with any Aadhaar number — only PAN input required',
+    description:
+      'Checks whether a given PAN is linked with any Aadhaar number. Unlike the unique-Aadhaar flow, this only ' +
+      'requires the PAN as input — no Aadhaar number, no consent-and-accessKey handshake. The portal calls the ' +
+      'verification provider on your behalf using your credentials; you only send your platform API key.',
+    authNote: 'Pass your API key as the `x-api-key` request header. The vendor key is injected server-side.',
+    params: [
+      { name: 'x-api-key', in: 'header', required: true, type: 'string', description: 'Your platform API key', example: 'env_abc123...' },
+      { name: 'consent', in: 'body', required: true, type: 'string', description: 'Consent is required to make the API request.', example: 'Y', enum: ['Y', 'N'] },
+      { name: 'pan', in: 'body', required: true, type: 'string', label: 'PAN Number', uppercase: true, placeholder: 'ABCDE1234F', description: 'PAN Number to be verified', validation: { minLength: 10, maxLength: 10, pattern: '^[A-Za-z]{3}[Pp][A-Za-z][0-9]{4}[A-Za-z]$', hint: '5 letters, 4 digits, 1 letter' } },
+      { name: 'clientData', in: 'body', required: false, type: 'object', description: 'Data of the user sharing consent' },
+      { name: 'clientData.caseId', in: 'body', required: false, type: 'string', description: 'Unique case id/lead id of the user sharing consent', validation: { maxLength: 200, hint: 'Max-length 200' } },
+    ],
+    responseFields: [
+      { field: 'data.statusCode', type: 'integer', required: true, description: 'Internal Status Code that denotes the status of the request.' },
+      { field: 'data.requestId', type: 'string', required: true, description: 'Unique id of the API request.' },
+      { field: 'data.result', type: 'object', required: true, description: 'Response object for the given inputs.' },
+      { field: 'data.result.isAadhaarLinked', type: 'boolean', required: false, description: 'Status whether PAN is linked or not (True/False)' },
+      { field: 'data.clientData', type: 'object', required: true, description: 'Data of the user sharing consent' },
+      { field: 'data.clientData.caseId', type: 'string', required: true, description: 'Unique case id/lead id of the user sharing consent' },
+    ],
+    exampleRequest: {
+      body: JSON.stringify({ pan: 'AXXXXXXXXA', consent: 'Y', clientData: { caseId: '123456' } }, null, 2),
+    },
+    exampleResponse: JSON.stringify({
+      success: true,
+      data: {
+        requestId: '4cd50347-a0a7-441e-984c-b2d2c2908110',
+        statusCode: 101,
+        result: { isAadhaarLinked: true },
+        clientData: { caseId: '123456' },
+      },
+    }, null, 2),
+    variants: PAN_LINK_ANY_VARIANTS,
+  },
+
+  // ── Verification (KYC) — Bank AC Verification Advanced (TKYC) ────────────
+  {
+    id: 'verify-bank-ac-advanced',
+    label: 'Bank AC Verification Advanced',
+    group: 'Banking & Payments',
+    method: 'POST',
+    path: '/api/verify/bank-ac-advanced',
+    shortDescription: 'Verify a bank account by performing a transaction/enquiry call and reading the NPCI response',
+    description:
+      'Verifies the Bank Account information of an entity or individual by performing a transaction or enquiry ' +
+      'call to the given Bank Account, and reading the response received from NPCI for the transaction. Supports ' +
+      'both single-name and multi-name matching, with configurable strictness. The portal calls the verification ' +
+      'provider on your behalf using your credentials; you only send your platform API key.',
+    authNote: 'Pass your API key as the `x-api-key` request header. The vendor key is injected server-side.',
+    params: [
+      { name: 'x-api-key', in: 'header', required: true, type: 'string', description: 'Your platform API key', example: 'env_abc123...' },
+      { name: 'consent', in: 'body', required: true, type: 'string', description: 'Consent is required to make the API request.', example: 'Y', enum: ['Y', 'N'] },
+      { name: 'accountNumber', in: 'body', required: true, type: 'string', description: 'Account number to be verified.', validation: { minLength: 5, maxLength: 25, pattern: '^[a-zA-Z0-9]+$', hint: 'alphanumeric, 5-25 chars' } },
+      { name: 'accountHolderName', in: 'body', required: false, type: 'string', description: 'Name of the account holder whose account is being verified (either accountHolderName or multiNameList to be passed)', validation: { pattern: "^[a-zA-Z0-9&,-/()_'. ]+$", hint: 'letters, numbers, and & , - / ( ) _ \' .' } },
+      { name: 'multiNameList', in: 'body', required: false, type: 'array', description: 'Multiple names that needs to be matched with bank name (either accountHolderName or multiNameList to be passed)' },
+      { name: 'ifsc', in: 'body', required: true, type: 'string', label: 'IFSC Code', uppercase: true, description: 'IFSC code of the home branch of the account.', validation: { pattern: '^[\\w]{4}0[\\w|\\d]{6}$', hint: '4 chars, 0, 6 chars/digits' } },
+      { name: 'nameMatchType', in: 'body', required: false, type: 'string', description: 'Whether the account holder is an individual or an entity', enum: ['individual', 'entity'] },
+      { name: 'useCombinedSolution', in: 'body', required: false, type: 'string', description: 'To be passed when combined solution needs to be used (Nonpenny + pennydrop)', example: 'Y' },
+      { name: 'allowPartialMatch', in: 'body', required: false, type: 'boolean', description: 'To allow partial name match algorithm' },
+      { name: 'preset', in: 'body', required: false, type: 'string', description: 'Strictness level of matching', example: 'G', validation: { hint: 'G (General), L (Lenient), S (Strict); default G' } },
+      { name: 'suppressReorderPenalty', in: 'body', required: false, type: 'boolean', description: 'To suppress reordering of name token' },
+      { name: 'clientData', in: 'body', required: false, type: 'object', description: 'Data of the user sharing consent' },
+      { name: 'clientData.caseId', in: 'body', required: false, type: 'string', description: 'Unique case id/lead id of the user sharing consent', validation: { maxLength: 200, hint: 'Max-length 200' } },
+    ],
+    responseFields: [
+      { field: 'data.statusCode', type: 'integer', required: true, description: 'Internal Status Code that denotes the status of the request.' },
+      { field: 'data.requestId', type: 'string', required: true, description: 'Unique id of the API request.' },
+      { field: 'data.result', type: 'object', required: true, description: 'Response object for the given inputs.' },
+      { field: 'data.result.data', type: 'object', required: false, description: 'Response data for the given inputs' },
+      { field: 'data.result.data.source', type: 'array', required: false, description: 'Data as per source for the given inputs' },
+      { field: 'data.result.data.source[].statusAsPerSource', type: 'string', required: false, description: 'Validity Status as per source' },
+      { field: 'data.result.data.source[].data', type: 'object', required: false, description: 'Response data from source' },
+      { field: 'data.result.data.source[].data.accountNumber', type: 'string', required: false, description: 'Provided account number' },
+      { field: 'data.result.data.source[].data.ifsc', type: 'string', required: false, description: 'Provided IFSC code' },
+      { field: 'data.result.data.source[].data.accountName', type: 'string', required: true, description: 'Name of the account holder' },
+      { field: 'data.result.data.source[].data.bankResponse', type: 'string', required: true, description: 'Bank response for the transaction' },
+      { field: 'data.result.data.source[].data.bankTxnStatus', type: 'boolean', required: true, description: 'Bank Transaction Status' },
+      { field: 'data.result.data.source[].data.bankRRN', type: 'string', required: true, description: 'Bank RRN for the transaction' },
+      { field: 'data.result.data.source[].data.statusCode', type: 'string', required: true, description: 'Internal Status Code that denotes the status of the request.' },
+      { field: 'data.result.data.source[].isValid', type: 'boolean', required: false, description: 'Validity Status' },
+      { field: 'data.result.data.identifier', type: 'string', required: false, description: 'Identification of the transaction processed through framework (NON_PENNY OR PENNY)' },
+      { field: 'data.result.comparisionData', type: 'object', required: false, description: 'Comparison Data' },
+      { field: 'data.result.comparisionData.inputVsSource', type: 'object', required: false, description: 'Comparison of Input vs Source data' },
+      { field: 'data.result.comparisionData.inputVsSource.flags', type: 'object', required: false, description: 'Flags from Comparison data' },
+      { field: 'data.result.comparisionData.inputVsSource.flags.multiNameList', type: 'object', required: false, description: 'Multi name match List' },
+      { field: 'data.result.comparisionData.inputVsSource.flags.multiNameList.matches', type: 'array', required: false, description: 'Match score and result for all the names provided' },
+      { field: 'data.result.comparisionData.inputVsSource.flags.multiNameList.matches[].score', type: 'float', required: false, description: 'Name Match Score' },
+      { field: 'data.result.comparisionData.inputVsSource.flags.multiNameList.matches[].result', type: 'boolean', required: true, description: 'Name Match Result' },
+      { field: 'data.result.comparisionData.inputVsSource.flags.multiNameList.matches[].name', type: 'string', required: false, description: 'Name provided for matching with the standard given name' },
+      { field: 'data.result.comparisionData.inputVsSource.flags.multiNameList.combinedScore', type: 'float', required: false, description: 'Combined score of base name with multiple names provided in the input.' },
+      { field: 'data.result.comparisionData.inputVsSource.validity', type: 'string', required: false, description: 'Validity Status as per comparison' },
+      { field: 'data.clientData', type: 'object', required: true, description: 'Data of the user sharing consent' },
+      { field: 'data.clientData.caseId', type: 'string', required: true, description: 'Unique case id/lead id of the user sharing consent' },
+    ],
+    exampleRequest: {
+      body: JSON.stringify({
+        accountNumber: '100xxxxx979',
+        accountHolderName: 'PERFIOS SOFTWARE SOLUTIONS PRIVATE LIMITED',
+        multiNameList: ['Perfios', 'Boyapati', 'Technologies'],
+        ifsc: 'IDFBxxxx101',
+        consent: 'Y',
+        nameMatchType: 'Entity',
+        useCombinedSolution: 'Y',
+        allowPartialMatch: true,
+        preset: 'G',
+        suppressReorderPenalty: true,
+        clientData: { caseId: '123456' },
+      }, null, 2),
+    },
+    exampleResponse: JSON.stringify({
+      success: true,
+      data: {
+        requestId: 'ee79852b-e3e5-4ae4-b2ef-d81442664be2',
+        result: {
+          data: {
+            source: [
+              {
+                statusAsPerSource: 'VALID',
+                data: {
+                  accountNumber: '10052056979',
+                  ifsc: 'IDFB0040101',
+                  accountName: 'PERFIOS SOFTWARE SOLUTIONS PRIVATE LIMITED',
+                  bankResponse: 'SUCCESSFUL TRANSACTION',
+                  bankTxnStatus: true,
+                  bankRRN: '521311711179',
+                  statusCode: 'KC01',
+                },
+                isValid: true,
+              },
+            ],
+            identifier: 'NON_PENNY',
+          },
+          comparisionData: {
+            inputVsSource: {
+              flags: {
+                multiNameList: {
+                  matches: [
+                    { score: 0.905, result: true, name: 'Perfios' },
+                    { score: 0.15076399733723234, result: false, name: 'Boyapati' },
+                    { score: 0.14811483597375216, result: false, name: 'Technologies' },
+                  ],
+                  combinedScore: 0.4012929444369948,
+                },
+              },
+              validity: 'VALID',
+            },
+          },
+        },
+        statusCode: 101,
+        clientData: { caseId: '123456' },
+      },
+    }, null, 2),
+    variants: BANK_AC_ADVANCED_VARIANTS,
+  },
+
+  // ── Verification (KYC) — Silent Bank Account Verification (TKYC) ─────────
+  {
+    id: 'verify-bank-ac-silent',
+    label: 'Silent Bank Account Verification',
+    group: 'Banking & Payments',
+    method: 'POST',
+    path: '/api/verify/bank-ac-silent',
+    shortDescription: 'Verify a bank account via a non-penny NPCI verification call (no funds moved)',
+    description:
+      'Verifies the Bank Account information of an entity by performing a verification call to the given Bank ' +
+      'Account and reading the response received from NPCI — this is a non-penny based solution, so no funds are ' +
+      'moved. The portal calls the verification provider on your behalf using your credentials; you only send ' +
+      'your platform API key.',
+    authNote: 'Pass your API key as the `x-api-key` request header. The vendor key is injected server-side.',
+    params: [
+      { name: 'x-api-key', in: 'header', required: true, type: 'string', description: 'Your platform API key', example: 'env_abc123...' },
+      { name: 'consent', in: 'body', required: true, type: 'string', description: 'Consent is required to make the API request.', example: 'Y', enum: ['Y', 'N'] },
+      { name: 'accountNumber', in: 'body', required: true, type: 'string', description: 'Account number of the bank account to be verified', validation: { minLength: 5, maxLength: 25, pattern: '^[a-zA-Z0-9]+$', hint: 'alphanumeric, 5-25 chars' } },
+      { name: 'accountHolderName', in: 'body', required: false, type: 'string', description: 'Name of the account holder whose account is being verified', validation: { pattern: "^[a-zA-Z0-9&,-/()_'. ]+$", hint: 'letters, numbers, and & , - / ( ) _ \' .' } },
+      { name: 'ifsc', in: 'body', required: true, type: 'string', label: 'IFSC Code', uppercase: true, description: 'IFSC of the bank branch to which the account belongs', validation: { pattern: '^[\\w]{4}0[\\w|\\d]{6}$', hint: '4 chars, 0, 6 chars/digits' } },
+      { name: 'nameMatchType', in: 'body', required: false, type: 'string', description: 'Whether the account holder is an individual or an entity', enum: ['individual', 'entity'] },
+      { name: 'allowPartialMatch', in: 'body', required: false, type: 'boolean', description: 'To allow partial name match algorithm' },
+      { name: 'preset', in: 'body', required: false, type: 'string', description: 'Strictness level of matching', example: 'S', validation: { hint: 'G (General), L (Lenient), S (Strict); default G' } },
+      { name: 'suppressReorderPenalty', in: 'body', required: false, type: 'boolean', description: 'To suppress reordering of name token' },
+      { name: 'clientData', in: 'body', required: false, type: 'object', description: 'Data of the user sharing consent' },
+      { name: 'clientData.caseId', in: 'body', required: false, type: 'string', description: 'Unique case id/lead id of the user sharing consent', validation: { maxLength: 200, hint: 'Max-length 200' } },
+    ],
+    responseFields: [
+      { field: 'data.statusCode', type: 'integer', required: true, description: 'Internal Status Code that denotes the status of the request.' },
+      { field: 'data.requestId', type: 'string', required: true, description: 'Unique id of the API request.' },
+      { field: 'data.result', type: 'object', required: true, description: 'Response object for the given inputs.' },
+      { field: 'data.result.data', type: 'object', required: false, description: 'Response data for the given inputs' },
+      { field: 'data.result.data.source', type: 'array', required: false, description: 'Data as per source for the given inputs' },
+      { field: 'data.result.data.source[].statusAsPerSource', type: 'string', required: false, description: 'Validity Status as per source' },
+      { field: 'data.result.data.source[].data', type: 'object', required: false, description: 'Response data from source' },
+      { field: 'data.result.data.source[].data.bankTxnStatus', type: 'boolean', required: false, description: 'Bank Transaction Status' },
+      { field: 'data.result.data.source[].data.accountNumber', type: 'string', required: false, description: 'Provided account number' },
+      { field: 'data.result.data.source[].data.ifsc', type: 'string', required: false, description: 'Provided IFSC code' },
+      { field: 'data.result.data.source[].data.accountName', type: 'string', required: true, description: 'Name of the account holder' },
+      { field: 'data.result.data.source[].data.bankResponse', type: 'string', required: true, description: 'Bank response for the transaction' },
+      { field: 'data.result.data.source[].data.bankRRN', type: 'string', required: true, description: 'Bank RRN for the transaction' },
+      { field: 'data.result.data.source[].data.statusCode', type: 'string', required: false, description: 'Internal Status Code that denotes the status of the request.' },
+      { field: 'data.result.data.source[].isValid', type: 'boolean', required: false, description: 'Validity Status' },
+      { field: 'data.result.comparisonData', type: 'object', required: false, description: 'Comparison Data' },
+      { field: 'data.result.comparisonData.inputVsSource', type: 'object', required: false, description: 'Comparison of Input vs Source data' },
+      { field: 'data.result.comparisonData.inputVsSource.flags', type: 'object', required: false, description: 'Flags from Comparison data' },
+      { field: 'data.result.comparisonData.inputVsSource.flags.accountHolderName', type: 'object', required: false, description: 'Comparison Results against Account Holder Name' },
+      { field: 'data.result.comparisonData.inputVsSource.flags.accountHolderName.score', type: 'integer', required: false, description: 'Name Match Score' },
+      { field: 'data.result.comparisonData.inputVsSource.flags.accountHolderName.result', type: 'boolean', required: true, description: 'Name Match Result' },
+      { field: 'data.result.comparisonData.inputVsSource.validity', type: 'string', required: false, description: 'Validity Status as per comparison' },
+      { field: 'data.clientData', type: 'object', required: true, description: 'Data of the user sharing consent' },
+      { field: 'data.clientData.caseId', type: 'string', required: true, description: 'Unique case id/lead id of the user sharing consent' },
+    ],
+    exampleRequest: {
+      body: JSON.stringify({
+        accountNumber: '501xxxxxxxx679',
+        accountHolderName: '',
+        ifsc: 'HDFCxxxx810',
+        consent: 'Y',
+        nameMatchType: '',
+        allowPartialMatch: true,
+        preset: 'S',
+        suppressReorderPenalty: true,
+        clientData: { caseId: '123456' },
+      }, null, 2),
+    },
+    exampleResponse: JSON.stringify({
+      success: true,
+      data: {
+        statusCode: 101,
+        requestId: '118b29e8-d7de-410c-98cf-a0849252e7ec',
+        result: {
+          data: {
+            source: [
+              {
+                statusAsPerSource: 'VALID',
+                data: {
+                  bankTxnStatus: true,
+                  accountNumber: '501xxxxxxxx679',
+                  ifsc: 'HDFCxxxx810',
+                  accountName: 'PERFIOS SOFTWARE SOLUTIONS PRIVATE LIMITED',
+                  bankResponse: 'SUCCESSFUL TRANSACTION',
+                  bankRRN: '214718512903',
+                  statusCode: 'KC01',
+                },
+                isValid: true,
+              },
+            ],
+          },
+          comparisonData: {
+            inputVsSource: {
+              flags: { accountHolderName: { score: 1, result: true } },
+              validity: 'VALID',
+            },
+          },
+        },
+        clientData: { caseId: '123456' },
+      },
+    }, null, 2),
+    variants: BANK_AC_SILENT_VARIANTS,
+  },
+
+  // ── Verification (KYC) — Driver's License Authentication (TKYC) ──────────
+  {
+    id: 'verify-dl',
+    label: "Driver's License Authentication",
+    group: 'KYC Authentication - Retail',
+    method: 'POST',
+    path: '/api/verify/dl',
+    shortDescription: "Authenticate a Driver's License issued by an Indian Road Transport Office",
+    description:
+      "Authenticates a Driver's License issued by the Road Transport Offices of the States of India, returning " +
+      "owner details, vehicle category authorizations, registered address, and license status. Optionally " +
+      "returns endorsement and hazardous-driving validity details. The portal calls the verification provider " +
+      "on your behalf using your credentials; you only send your platform API key.",
+    authNote: 'Pass your API key as the `x-api-key` request header. The vendor key is injected server-side.',
+    params: [
+      { name: 'x-api-key', in: 'header', required: true, type: 'string', description: 'Your platform API key', example: 'env_abc123...' },
+      { name: 'consent', in: 'body', required: true, type: 'string', description: 'Consent is required to make the API request.', example: 'Y', enum: ['Y', 'N'] },
+      { name: 'dlNo', in: 'body', required: true, type: 'string', label: 'DL Number', uppercase: true, placeholder: 'MH0120130001960', description: 'Driving License Number as mentioned on the license including special characters and spaces.', validation: { minLength: 9, maxLength: 50, hint: '9-50 chars' } },
+      { name: 'dob', in: 'body', required: true, type: 'string', label: 'Date of Birth', placeholder: 'DD-MM-YYYY', description: 'Date of Birth as per License in dd-mm-yyyy format', validation: { pattern: '^(0[1-9]|[12][0-9]|3[01])-(0[1-9]|1[012])-(19|20)\\d\\d$', hint: 'DD-MM-YYYY' } },
+      { name: 'additionalDetails', in: 'body', required: false, type: 'boolean', description: 'If this is true, it will return endorsement and hazardous details' },
+      { name: 'clientData', in: 'body', required: false, type: 'object', description: 'Data of the user sharing consent' },
+      { name: 'clientData.caseId', in: 'body', required: false, type: 'string', description: 'Unique case id/lead id of the user sharing consent', validation: { maxLength: 200, hint: 'Max-length 200' } },
+    ],
+    responseFields: [
+      { field: 'data.statusCode', type: 'integer', required: true, description: 'Internal Status Code that denotes the status of the request.' },
+      { field: 'data.requestId', type: 'string', required: true, description: 'Unique id of the API request.' },
+      { field: 'data.result', type: 'object', required: false, description: 'Response object for the given inputs.' },
+      { field: 'data.result.issueDate', type: 'string', required: false, description: 'Date of Issue of the Driving License in dd-mm-yyyy format' },
+      { field: 'data.result.father/husband', type: 'string', required: false, description: 'Name of Relative' },
+      { field: 'data.result.name', type: 'string', required: false, description: 'Owner Name as per Driving License' },
+      { field: 'data.result.img', type: 'string', required: false, description: 'Image of the licence holder' },
+      { field: 'data.result.bloodGroup', type: 'string', required: false, description: 'Blood Group of the owner' },
+      { field: 'data.result.dob', type: 'string', required: false, description: 'Date of Birth of the owner in dd-mm-yyyy format' },
+      { field: 'data.result.dlNumber', type: 'string', required: false, description: 'Driving License Number of the owner' },
+      { field: 'data.result.validity', type: 'object', required: false, description: 'Validity of the license as per purpose of driving — transport or non-transport' },
+      { field: 'data.result.validity.nonTransport', type: 'string', required: false, description: 'Validity of the license for non-transport ("dd-mm-yyyy to dd-mm-yyyy" or "dd-mm-yyyy" or "" or null)' },
+      { field: 'data.result.validity.transport', type: 'string', required: false, description: 'Validity of the license for transport ("dd-mm-yyyy to dd-mm-yyyy" or "dd-mm-yyyy" or "" or null)' },
+      { field: 'data.result.covDetails', type: 'array', required: false, description: 'Category of Vehicles the licensee is authorized to drive along with effective date' },
+      { field: 'data.result.covDetails[].cov', type: 'string', required: false, description: 'Category of vehicle (LMV, HMV, HPMV, etc.)' },
+      { field: 'data.result.covDetails[].issueDate', type: 'string', required: false, description: 'Date of Issue of the license or place where the license has been issued in dd-mm-yyyy format' },
+      { field: 'data.result.address', type: 'array', required: false, description: 'Registered addresses as per Driving License' },
+      { field: 'data.result.address[].addressLine1', type: 'string', required: false, description: 'Address Line 1' },
+      { field: 'data.result.address[].state', type: 'string', required: false, description: 'State' },
+      { field: 'data.result.address[].district', type: 'string', required: false, description: 'District' },
+      { field: 'data.result.address[].pin', type: 'integer', required: false, description: 'Pin Code' },
+      { field: 'data.result.address[].completeAddress', type: 'string', required: false, description: 'Complete Address' },
+      { field: 'data.result.address[].country', type: 'string', required: false, description: 'Country' },
+      { field: 'data.result.address[].type', type: 'string', required: false, description: 'Address Type (Present/Permanent/NA)' },
+      { field: 'data.result.status', type: 'string', required: false, description: 'Status of the Driving License Number as per Government Records' },
+      { field: 'data.result.statusDetails', type: 'object', required: false, description: 'Details of the Driving License Status' },
+      { field: 'data.result.statusDetails.from', type: 'string', required: false, description: 'Driving License valid from date in dd-mm-yyyy format' },
+      { field: 'data.result.statusDetails.to', type: 'string', required: false, description: 'Driving License valid to date in dd-mm-yyyy format' },
+      { field: 'data.result.statusDetails.remarks', type: 'string', required: false, description: 'Remarks for the Status' },
+      { field: 'data.result.endorsementAndHazardousDetails', type: 'object', required: false, description: 'Details of Endorsement and Hazardous Validity' },
+      { field: 'data.result.endorsementAndHazardousDetails.initialIssuingOffice', type: 'string', required: false, description: 'Initial Issuing RTO for given Driving License' },
+      { field: 'data.result.endorsementAndHazardousDetails.lastEndorsementDate', type: 'string', required: false, description: 'Latest endorsement date if any act was imposed on Driving License owner in dd-mm-yyyy format' },
+      { field: 'data.result.endorsementAndHazardousDetails.lastEndorsedOffice', type: 'string', required: false, description: 'Lastest RTO who imposed the endorsement on Driving License owner' },
+      { field: 'data.result.endorsementAndHazardousDetails.endorsementReason', type: 'string', required: false, description: 'Detailed Reason of endorsement' },
+      { field: 'data.result.endorsementAndHazardousDetails.hazardousValidTill', type: 'string', required: false, description: 'Date of validity to drive hazardous vehicle' },
+      { field: 'data.result.endorsementAndHazardousDetails.hillValidTill', type: 'string', required: false, description: 'Date of validity to drive vehicle in hill roads' },
+      { field: 'data.clientData', type: 'object', required: true, description: 'Data of the user sharing consent' },
+      { field: 'data.clientData.caseId', type: 'string', required: true, description: 'Unique case id/lead id of the user sharing consent' },
+    ],
+    exampleRequest: {
+      body: JSON.stringify({ dlNo: 'MH0120130001960', dob: '05-10-1994', additionalDetails: true, consent: 'Y', clientData: { caseId: '123456' } }, null, 2),
+    },
+    exampleResponse: JSON.stringify({
+      success: true,
+      data: {
+        requestId: 'ef484b85-34b9-45cb-99de-119accb91066',
+        result: {
+          issueDate: '08-01-2013',
+          'father/husband': 'DIVAKAR PANDEY',
+          name: 'PUNEET PANDEY',
+          img: '/9j/4AAQSkZJRgABAQAAAQABAAD...',
+          bloodGroup: 'B+',
+          dob: '05-10-1994',
+          dlNumber: 'MH0120130001960',
+          validity: { nonTransport: '08-01-2013 to 07-01-2033', transport: '' },
+          covDetails: [
+            { cov: 'MCWG', issueDate: '08-01-2013' },
+            { cov: 'LMV', issueDate: '08-01-2013' },
+          ],
+          address: [
+            {
+              addressLine1: '', state: 'MAHARASHTRA', district: 'MUMBAI', pin: 400013,
+              completeAddress: 'C/304 PIMPLESHWAR CHS MAHADEV PALAV MARG CURREY RD MUMBAI MUMBAI,MUMBAI,MH 400013',
+              country: '', type: 'NA',
+            },
+          ],
+          status: 'Active',
+          statusDetails: { from: '', to: '', remarks: '' },
+          endorsementAndHazardousDetails: {
+            initialIssuingOffice: 'RTO,MUMBAI CENTRAL',
+            lastEndorsementDate: '02-01-2018',
+            lastEndorsedOffice: 'RTO,MUMBAI CENTRAL',
+            endorsementReason: 'ISSUE OF DUPLICATE DL , ISSUE OF DRIVING LICENCE',
+            hazardousValidTill: 'NA',
+            hillValidTill: 'NA',
+          },
+        },
+        statusCode: 101,
+        clientData: { caseId: '123456' },
+      },
+    }, null, 2),
+    variants: DL_VARIANTS,
+  },
+
+  // ── Verification (KYC) — Passport Verification (TKYC) ────────────────────
+  {
+    id: 'verify-passport',
+    label: 'Passport Verification',
+    group: 'KYC Authentication - Retail',
+    method: 'POST',
+    path: '/api/verify/passport',
+    shortDescription: 'Verify a passport issued by Passport Seva Kendra using File Number and Date of Birth',
+    description:
+      'Verifies a passport issued by Passport Seva Kendra basis File Number and Date of Birth (or Passport ' +
+      'Number, Date of Issue, and name), returning name-match, dispatch, and application-type details from the ' +
+      'source. The portal calls the verification provider on your behalf using your credentials; you only send ' +
+      'your platform API key.',
+    authNote: 'Pass your API key as the `x-api-key` request header. The vendor key is injected server-side.',
+    params: [
+      { name: 'x-api-key', in: 'header', required: true, type: 'string', description: 'Your platform API key', example: 'env_abc123...' },
+      { name: 'consent', in: 'body', required: true, type: 'string', description: 'Consent is required to make the API request.', example: 'Y', enum: ['Y', 'N'] },
+      { name: 'fileNo', in: 'body', required: false, type: 'string', description: 'Passport application File Number as printed on the last page of the passport' },
+      { name: 'dob', in: 'body', required: false, type: 'string', label: 'Date of Birth', placeholder: 'DD/MM/YYYY', description: 'Date of birth as per Passport' },
+      { name: 'passportNo', in: 'body', required: false, type: 'string', label: 'Passport Number', uppercase: true, description: 'Passport Number', validation: { pattern: '^(?!^0+$)[a-zA-Z0-9]{3,20}$', hint: '3-20 alphanumeric chars' } },
+      { name: 'doi', in: 'body', required: false, type: 'string', label: 'Date of Issue', placeholder: 'DD/MM/YYYY', description: 'Date of Issue as per Passport' },
+      { name: 'name', in: 'body', required: false, type: 'string', description: 'Complete name of the passport holder' },
+      { name: 'passportStatus', in: 'body', required: false, type: 'string', description: 'If status of passport required', example: 'Y', enum: ['Y', 'N'] },
+      { name: 'clientData', in: 'body', required: false, type: 'object', description: 'Data of the user sharing consent' },
+      { name: 'clientData.caseId', in: 'body', required: false, type: 'string', description: 'Unique case id/lead id of the user sharing consent', validation: { maxLength: 200, hint: 'Max-length 200' } },
+    ],
+    responseFields: [
+      { field: 'data.statusCode', type: 'integer', required: true, description: 'Internal Status Code that denotes the status of the request.' },
+      { field: 'data.requestId', type: 'string', required: true, description: 'Unique id of the API request.' },
+      { field: 'data.result', type: 'object', required: true, description: 'Response object for the given inputs.' },
+      { field: 'data.result.passportNumber', type: 'object', required: false, description: 'Object containing the passport number as per source' },
+      { field: 'data.result.passportNumber.passportNumberFromSource', type: 'string', required: false, description: 'Passport number allocated for the given File Number and Date of birth' },
+      { field: 'data.result.passportNumber.passportNumberMatch', type: 'boolean', required: false, description: 'Whether given passport number matches the number as per source' },
+      { field: 'data.result.applicationDate', type: 'string', required: false, description: 'Date of application as per source' },
+      { field: 'data.result.typeOfApplication', type: 'string', required: false, description: 'Application type [Normal or Tatkaal]' },
+      { field: 'data.result.dateOfIssue', type: 'object', required: false, description: 'Object containing the dispatch date as per source' },
+      { field: 'data.result.dateOfIssue.dispatchedOnFromSource', type: 'string', required: false, description: 'Date of Dispatch or Date of Counter Delivery of passport as per source' },
+      { field: 'data.result.dateOfIssue.dateOfIssueMatch', type: 'boolean', required: false, description: 'Whether the date of Issue is within 2 days of date of dispatch' },
+      { field: 'data.result.name', type: 'object', required: false, description: 'Object containing the details of the passport holder name as per source' },
+      { field: 'data.result.name.nameScore', type: 'float', required: false, description: 'Name match score' },
+      { field: 'data.result.name.nameMatch', type: 'boolean', required: false, description: 'Whether the given name matches with the name as per source' },
+      { field: 'data.result.name.surnameFromPassport', type: 'string', required: false, description: 'Surname as per Source' },
+      { field: 'data.result.name.nameFromPassport', type: 'string', required: false, description: 'Given Name [First and Middle] as per source' },
+      { field: 'data.result.status', type: 'string', required: false, description: 'Status message as per source' },
+      { field: 'data.clientData', type: 'object', required: true, description: 'Data of the user sharing consent' },
+      { field: 'data.clientData.caseId', type: 'string', required: true, description: 'Unique case id/lead id of the user sharing consent' },
+    ],
+    exampleRequest: {
+      body: JSON.stringify({
+        consent: 'Y', fileNo: 'BO3072344560818', dob: '17/08/1987', passportNo: 'S3733862',
+        doi: '14/05/2018', name: 'OMKAR MILIND SHIRHATTI', passportStatus: 'Y',
+        clientData: { caseId: '123456' },
+      }, null, 2),
+    },
+    exampleResponse: JSON.stringify({
+      success: true,
+      data: {
+        result: {
+          passportNumber: { passportNumberFromSource: 'S3733862', passportNumberMatch: true },
+          applicationDate: '14/05/2018',
+          typeOfApplication: 'Tatkaal',
+          dateOfIssue: { dispatchedOnFromSource: '14/05/2018', dateOfIssueMatch: true },
+          name: { nameScore: 1, nameMatch: true, surnameFromPassport: 'SHIRHATTI', nameFromPassport: 'OMKAR MILIND' },
+          status: 'Passport S3733862 has been dispatched on 14/05/2018 via Speed Post Tracking Number',
+        },
+        requestId: 'f3de6c55-6c0f-11e9-bf8e-610d4b51e956',
+        statusCode: 101,
+        clientData: { caseId: '123456' },
+      },
+    }, null, 2),
+    variants: PASSPORT_VARIANTS,
+  },
+
+  // ── Verification (KYC) — Vehicle RC Authentication - Advanced (TKYC) ─────
+  {
+    id: 'verify-rc-advanced',
+    label: 'Vehicle RC Authentication - Advanced',
+    group: 'Asset & Vehicle',
+    method: 'POST',
+    path: '/api/verify/rc-advanced',
+    shortDescription: 'Fetch detailed vehicle registration (RC) details for a given Vehicle Registration Number',
+    description:
+      'Fetches detailed vehicle registration (RC) details against a given Vehicle Registration Number — owner, ' +
+      'manufacturer, insurance, permit, fitness, and tax details from the government source. The portal calls ' +
+      'the verification provider on your behalf using your credentials; you only send your platform API key.',
+    authNote: 'Pass your API key as the `x-api-key` request header. The vendor key is injected server-side.',
+    params: [
+      { name: 'x-api-key', in: 'header', required: true, type: 'string', description: 'Your platform API key', example: 'env_abc123...' },
+      { name: 'consent', in: 'body', required: true, type: 'string', description: 'Consent is required to make the API request.', example: 'Y', enum: ['Y', 'N'] },
+      { name: 'registrationNumber', in: 'body', required: true, type: 'string', label: 'Registration Number', uppercase: true, placeholder: 'MH04CY4545', description: 'Vehicle Registration Number', validation: { minLength: 6, maxLength: 20, hint: '6-20 chars, e.g. MH04CY4545' } },
+      { name: 'version', in: 'body', required: true, type: 'number', description: 'API version', example: 3.1, validation: { hint: 'Value must be greater than 3' } },
+      { name: 'partialEngine', in: 'body', required: false, type: 'string', description: 'If Partial engine is required', example: 'Y', enum: ['Y', 'N'] },
+      { name: 'clientData', in: 'body', required: false, type: 'object', description: 'Data of the user sharing consent' },
+      { name: 'clientData.caseId', in: 'body', required: false, type: 'string', description: 'Unique case id/lead id of the user sharing consent', validation: { maxLength: 200, hint: 'Max-length 200' } },
+    ],
+    responseFields: [
+      { field: 'data.statusCode', type: 'integer', required: true, description: 'Internal Status Code that denotes the status of the request.' },
+      { field: 'data.requestId', type: 'string', required: true, description: 'Unique id of the API request.' },
+      { field: 'data.result', type: 'object', required: true, description: 'Response object for the given inputs.' },
+      { field: 'data.result.blackListInfo', type: 'array', required: false, description: 'Blacklist information of the vehicle' },
+      { field: 'data.result.blackListStatus', type: 'string', required: false, description: 'Blacklist status of the vehicle' },
+      { field: 'data.result.bodyTypeDescription', type: 'string', required: false, description: 'Body Type of the Vehicle' },
+      { field: 'data.result.chassisNumber', type: 'string', required: false, description: 'Chassis Number of the Vehicle' },
+      { field: 'data.result.color', type: 'string', required: false, description: 'Registered Color of the Vehicle' },
+      { field: 'data.result.cubicCapacity', type: 'string', required: false, description: 'Cubic Capacity of the Vehicle Engine' },
+      { field: 'data.result.engineNumber', type: 'string', required: false, description: 'Engine Number of the vehicle' },
+      { field: 'data.result.fatherName', type: 'string', required: false, description: "Father's Name of Registered Owner of the vehicle" },
+      { field: 'data.result.financier', type: 'string', required: false, description: 'Name of Vehicle Financier' },
+      { field: 'data.result.fitnessUpto', type: 'string', required: false, description: 'Date of Validity of Vehicle Fitness certificate' },
+      { field: 'data.result.fuelDescription', type: 'string', required: false, description: 'Vehicle Fuel Type' },
+      { field: 'data.result.grossVehicleWeight', type: 'string', required: false, description: 'Gross Weight of the Vehicle' },
+      { field: 'data.result.insuranceCompany', type: 'string', required: false, description: 'Insurer Name of the Vehicle' },
+      { field: 'data.result.insurancePolicyNumber', type: 'string', required: false, description: 'Insurance Policy Number of the Vehicle' },
+      { field: 'data.result.insuranceUpto', type: 'string', required: false, description: 'Date of validity of RC Insurance' },
+      { field: 'data.result.makerDescription', type: 'string', required: false, description: 'Name of Vehicle Manufacturer' },
+      { field: 'data.result.makerModel', type: 'string', required: false, description: 'Vehicle Model and Make' },
+      { field: 'data.result.manufacturedMonthYear', type: 'string', required: false, description: 'Month & Year of Vehicle Manufacture' },
+      { field: 'data.result.nationalPermitExpiryDate', type: 'string', required: false, description: 'Expiry date of the national permit of the vehicle' },
+      { field: 'data.result.nationalPermitIssuedBy', type: 'string', required: false, description: 'Name of the body which issued the National Permit for the vehicle' },
+      { field: 'data.result.nationalPermitNumber', type: 'string', required: false, description: 'National Permit Number of the vehicle' },
+      { field: 'data.result.nocDetails', type: 'string', required: false, description: 'Vehicle No Objection Certificate details issued by RTO' },
+      { field: 'data.result.nonUseFrom', type: 'string', required: false, description: 'Date of vehicle non use from' },
+      { field: 'data.result.nonUseTo', type: 'string', required: false, description: 'Date of vehicle non use to' },
+      { field: 'data.result.normsDescription', type: 'string', required: false, description: 'Vehicle Pollution Norms Description' },
+      { field: 'data.result.numberOfCylinders', type: 'string', required: false, description: 'Number of Cylinders' },
+      { field: 'data.result.ownerName', type: 'string', required: false, description: 'Registered Name of Owner' },
+      { field: 'data.result.ownerSerialNumber', type: 'string', required: false, description: 'Serial Number of Vehicle Owner' },
+      { field: 'data.result.permanentAddress', type: 'string', required: false, description: 'Registered Permanent Address of the Vehicle Owner' },
+      { field: 'data.result.presentAddress', type: 'string', required: false, description: 'Registered Present Address of the Owner' },
+      { field: 'data.result.pucExpiryDate', type: 'string', required: false, description: 'Expiry date of PUC certificate of the vehicle' },
+      { field: 'data.result.pucNumber', type: 'string', required: false, description: 'PUC Registration Number of the vehicle' },
+      { field: 'data.result.rcMobileNo', type: 'string', required: false, description: 'Mobile number registered for given RC number' },
+      { field: 'data.result.rcNonUseStatus', type: 'string', required: false, description: 'Vehicle RC Non use status' },
+      { field: 'data.result.rcStatus', type: 'string', required: false, description: 'RC status of vehicle' },
+      { field: 'data.result.registeredAt', type: 'string', required: false, description: 'Location of RTO where the vehicle was registered' },
+      { field: 'data.result.registrationDate', type: 'string', required: false, description: 'Date of Registration of the Vehicle' },
+      { field: 'data.result.registrationNumber', type: 'string', required: false, description: 'Registration Number of the Vehicle' },
+      { field: 'data.result.seatingCapacity', type: 'string', required: false, description: 'Vehicle Passenger Seating Capacity' },
+      { field: 'data.result.sleeperCapacity', type: 'string', required: false, description: 'Maximum Sleeper Capacity' },
+      { field: 'data.result.standingCapacity', type: 'string', required: false, description: 'Capacity of Standing Passengers in the Vehicle' },
+      { field: 'data.result.stateCd', type: 'string', required: false, description: 'State code of the vehicle' },
+      { field: 'data.result.statePermitExpiryDate', type: 'string', required: false, description: 'Expiry date of the State permit of the vehicle' },
+      { field: 'data.result.statePermitIssuedDate', type: 'string', required: false, description: 'Date of issue of State Permit of the vehicle' },
+      { field: 'data.result.statePermitNumber', type: 'string', required: false, description: 'State Permit Number of the vehicle' },
+      { field: 'data.result.statePermitType', type: 'string', required: false, description: 'Type of State Permit issued for the vehicle' },
+      { field: 'data.result.statusAsOn', type: 'string', required: false, description: 'Date of RC Status Verification' },
+      { field: 'data.result.stautsMessage', type: 'string', required: false, description: 'Status message of vehicle' },
+      { field: 'data.result.taxPaidUpto', type: 'string', required: false, description: 'Duration till the Tax on the Vehicle has been paid (Life time / One time)' },
+      { field: 'data.result.unladenWeight', type: 'string', required: false, description: 'Unladden Weight of the Vehicle' },
+      { field: 'data.result.vehicleCatgory', type: 'string', required: false, description: 'Category of vehicle' },
+      { field: 'data.result.vehicleClassDescription', type: 'string', required: false, description: 'Description of Vehicle Class' },
+      { field: 'data.result.wheelbase', type: 'string', required: false, description: 'Wheelbase in mm of the vehicle' },
+      { field: 'data.clientData', type: 'object', required: true, description: 'Data of the user sharing consent' },
+      { field: 'data.clientData.caseId', type: 'string', required: true, description: 'Unique case id/lead id of the user sharing consent' },
+    ],
+    exampleRequest: {
+      body: JSON.stringify({ registrationNumber: 'MH04CY4545', consent: 'Y', partialEngine: 'Y', version: 3.1, clientData: { caseId: '123456' } }, null, 2),
+    },
+    exampleResponse: JSON.stringify({
+      success: true,
+      data: {
+        requestId: 'be275edf-f9dd-4c8c-8428-b8b5290b5a5d',
+        result: {
+          blackListInfo: [], blackListStatus: 'NA', bodyTypeDescription: 'SALOON', chassisNumber: 'MBJ11JV40070650241106',
+          color: 'BLACK MET', cubicCapacity: '1998.0', engineNumber: '2KD9780094', fatherName: 'MUKUND SHUKLA',
+          financier: 'NA', fitnessUpto: '29-12-2021', fuelDescription: 'DIESEL', grossVehicleWeight: '2290',
+          insuranceCompany: 'Reliance General Insurance Co. Ltd.', insurancePolicyNumber: '110522123470007351',
+          insuranceUpto: '21-01-2022', makerDescription: 'TOYOTA KIRLOSKAR MOTOR PVT LTD',
+          makerModel: 'INNOVA 2.5 G WITH POWER STEER', manufacturedMonthYear: '11-2006',
+          nationalPermitExpiryDate: null, nationalPermitIssuedBy: '', nationalPermitNumber: '', nocDetails: 'NA',
+          nonUseFrom: null, nonUseTo: null, normsDescription: 'Not Available', numberOfCylinders: '4',
+          ownerName: 'SAMEER M SHUKLA', ownerSerialNumber: '3',
+          permanentAddress: 'FLAT NO 6 SATCHIDANAND CHS , PHADKE RD DOMBIVALI E OPP,HDFC BANK KALYAN, Thane -421201',
+          presentAddress: 'FLAT NO 6 SATCHIDANAND CHS , PHADKE RD DOMBIVALI E OPP,HDFC BANK KALYAN, Thane -421201',
+          pucExpiryDate: '22-04-2022', pucNumber: 'MH00500490004913', rcMobileNo: '', rcNonUseStatus: null,
+          rcStatus: 'ACTIVE', registeredAt: 'KALYAN, Maharashtra', registrationDate: '30-12-2006',
+          registrationNumber: 'MH04CY4545', seatingCapacity: '7', sleeperCapacity: '0', standingCapacity: '0',
+          stateCd: null, statePermitExpiryDate: null, statePermitIssuedDate: null, statePermitNumber: '',
+          statePermitType: null, statusAsOn: null, stautsMessage: null, taxPaidUpto: '31-Dec-2099',
+          unladenWeight: '1630', vehicleCatgory: 'LMV', vehicleClassDescription: 'Motor Car(LMV)', wheelbase: '2750',
+        },
+        statusCode: 101,
+        clientData: { caseId: '123456' },
+      },
+    }, null, 2),
+    variants: RC_ADVANCED_VARIANTS,
+  },
+
+  // ── Verification (KYC) — GST Authentication (TKYC) ────────────────────────
+  {
+    id: 'verify-gst',
+    label: 'GST Authentication',
+    group: 'KYC Authentication - Commercial',
+    method: 'POST',
+    path: '/api/verify/gst',
+    shortDescription: 'Authenticate a 15-digit GSTIN and fetch registration, business, and (optionally) turnover details',
+    description:
+      'Authenticates a 15-digit GSTIN issued by the Goods and Service Tax Network in India, returning legal name, ' +
+      'registration status, jurisdiction, and address details. When `additionalData` is true, also returns HSN/SAC ' +
+      'goods & services details, aggregated annual turnover slab, e-KYC/Aadhaar authentication flags, and gross ' +
+      'total income from IT returns. The portal calls the verification provider on your behalf using your ' +
+      'credentials; you only send your platform API key.',
+    authNote: 'Pass your API key as the `x-api-key` request header. The vendor key is injected server-side.',
+    params: [
+      { name: 'x-api-key', in: 'header', required: true, type: 'string', description: 'Your platform API key', example: 'env_abc123...' },
+      { name: 'consent', in: 'body', required: true, type: 'string', description: 'Consent is required to make the API request.', example: 'Y', enum: ['Y', 'N'] },
+      { name: 'additionalData', in: 'body', required: false, type: 'boolean', description: 'Optional Parameter: To fetch HSN Summary of the entity and certain additional data-points' },
+      { name: 'gstin', in: 'body', required: true, type: 'string', label: 'GSTIN', uppercase: true, placeholder: '27AAACR5055K1Z7', description: 'Fifteen character unique GSTIN to be authenticated', validation: { minLength: 15, maxLength: 15, hint: '15 chars' } },
+      { name: 'clientData', in: 'body', required: false, type: 'object', description: 'Data of the user sharing consent' },
+      { name: 'clientData.caseId', in: 'body', required: false, type: 'string', description: 'Unique case id/lead id of the user sharing consent', validation: { maxLength: 200, hint: 'Max-length 200' } },
+    ],
+    responseFields: [
+      { field: 'data.statusCode', type: 'integer', required: true, description: 'Internal Status Code that denotes the status of the request.' },
+      { field: 'data.requestId', type: 'string', required: true, description: 'Unique id of the API request.' },
+      { field: 'data.result', type: 'object', required: true, description: 'Response object for the given inputs' },
+      { field: 'data.result.canFlag', type: 'string', required: false, description: 'Flag to identify if an application for cancellation of GST has been filed' },
+      { field: 'data.result.contacted', type: 'object', required: false, description: 'Contact details fetched using internal database' },
+      { field: 'data.result.contacted.email', type: 'string', required: false, description: 'Email ID' },
+      { field: 'data.result.contacted.mobNum', type: 'string', required: false, description: 'Mobile Number' },
+      { field: 'data.result.contacted.name', type: 'string', required: false, description: 'Name' },
+      { field: 'data.result.ppr', type: 'string', required: false, description: 'NA' },
+      { field: 'data.result.cmpRt', type: 'string', required: false, description: 'Compliance rating if provided by GSP' },
+      { field: 'data.result.rgdt', type: 'string', required: false, description: 'Registration date under GST' },
+      { field: 'data.result.tradeNam', type: 'string', required: false, description: 'Trade Name' },
+      { field: 'data.result.nba', type: 'array', required: false, description: 'Nature of business registered under GST' },
+      { field: 'data.result.mbr', type: 'array', required: false, description: 'Member names if provided by GSP' },
+      { field: 'data.result.adadr', type: 'array', required: false, description: 'Address information for additional places of business' },
+      { field: 'data.result.pradr', type: 'object', required: false, description: 'Address information for principal place of business' },
+      { field: 'data.result.stjCd', type: 'string', required: false, description: 'State Jurisdiction Code' },
+      { field: 'data.result.lstupdt', type: 'string', required: false, description: 'Last Updated' },
+      { field: 'data.result.gstin', type: 'string', required: false, description: 'Given GSTIN' },
+      { field: 'data.result.ctjCd', type: 'string', required: false, description: 'Central Jurisdiction Code' },
+      { field: 'data.result.stj', type: 'string', required: false, description: 'State Jurisdiction' },
+      { field: 'data.result.dty', type: 'string', required: false, description: 'Taxpayer Type' },
+      { field: 'data.result.cxdt', type: 'string', required: false, description: 'Date of Cancellation of Registration' },
+      { field: 'data.result.ctb', type: 'string', required: false, description: 'Constitution of Business' },
+      { field: 'data.result.sts', type: 'string', required: false, description: 'Current status of registration under GST' },
+      { field: 'data.result.lgnm', type: 'string', required: false, description: 'Legal Name of the Business or Individual corresponding to the GSTIN' },
+      { field: 'data.result.ctj', type: 'string', required: false, description: 'Central Jurisdiction' },
+      { field: 'data.result.bzgddtls', type: 'array', required: false, description: '(additionalData) HSN details for Goods' },
+      { field: 'data.result.bzsdtls', type: 'array', required: false, description: '(additionalData) SAC details for services' },
+      { field: 'data.result.aggreTurnOver', type: 'string', required: false, description: '(additionalData) Aggregated annual PAN level turnover slab of the entity' },
+      { field: 'data.result.mandatedeInvoice', type: 'string', required: false, description: '(additionalData) Whether E-Invoice is mandatory for the entity' },
+      { field: 'data.result.ntcrbs', type: 'string', required: false, description: '(additionalData) Nature Of Core Business Activity' },
+      { field: 'data.result.adhrVFlag', type: 'string', required: false, description: '(additionalData) Whether Aadhaar authenticated' },
+      { field: 'data.result.gtiFY', type: 'string', required: false, description: '(additionalData) Gross total income pertaining to the financial year' },
+      { field: 'data.result.ekycVFlag', type: 'string', required: false, description: '(additionalData) Whether e-KYC verified' },
+      { field: 'data.result.percentTaxInCash', type: 'string', required: false, description: '(additionalData) Percentage of tax payment in cash' },
+      { field: 'data.result.compDetl', type: 'boolean', required: false, description: '(additionalData) Whether compliance details available' },
+      { field: 'data.result.gti', type: 'string', required: false, description: '(additionalData) Gross total income as per income-tax returns' },
+      { field: 'data.result.aggreTurnOverFY', type: 'string', required: false, description: '(additionalData) Aggregated annual PAN level turnover slab pertaining to the financial year' },
+      { field: 'data.result.percentTaxInCashFY', type: 'string', required: false, description: '(additionalData) Percentage of tax payment in cash pertaining to the financial year' },
+      { field: 'data.clientData', type: 'object', required: true, description: 'Data of the user sharing consent' },
+      { field: 'data.clientData.caseId', type: 'string', required: true, description: 'Unique case id/lead id of the user sharing consent' },
+    ],
+    exampleRequest: {
+      body: JSON.stringify({ consent: 'Y', additionalData: false, gstin: '27AAACR5055K1Z7', clientData: { caseId: '123456' } }, null, 2),
+    },
+    exampleResponse: JSON.stringify({
+      success: true,
+      data: {
+        requestId: 'e17b624f-52ea-48d0-bfdb-320885d4034d',
+        result: {
+          canFlag: null,
+          contacted: { email: '', mobNum: '', name: null },
+          ppr: null, cmpRt: 'NA', rgdt: '01/07/2017', tradeNam: 'RELIANCE INDUSTRIES LIMITED',
+          nba: ['Factory / Manufacturing', 'Retail Business'],
+          mbr: ['Nikhil Rasiklal Meswani'],
+          adadr: [],
+          pradr: { adr: '5, 5, TTC Industrial Area, Thane, Maharashtra, 400701', em: '', mb: '', ntr: 'Factory / Manufacturing', addr: 'NA', lastUpdatedDate: 'NA' },
+          stjCd: null, lstupdt: null, gstin: '27AAACR5055K1Z7', ctjCd: null,
+          stj: 'State - Maharashtra,Zone - Thane,Division - RAIGAD,Charge - URAN_701',
+          dty: 'Regular', cxdt: null, ctb: 'Public Limited Company', sts: 'Active',
+          lgnm: 'RELIANCE INDUSTRIES LIMITED',
+          ctj: 'Commissionerate - BELAPUR,Division - DIVISION IV,Range - RANGE-IV (Jurisdictional Office)',
+        },
+        statusCode: 101,
+        clientData: { caseId: '123456' },
+      },
+    }, null, 2),
+    variants: GST_VARIANTS,
+  },
+
+  // ── Verification (KYC) — GST Advanced (TKYC) ──────────────────────────────
+  {
+    id: 'verify-gst-advanced',
+    label: 'GST Advanced',
+    group: 'KYC Authentication - Commercial',
+    method: 'POST',
+    path: '/api/verify/gst-advanced',
+    shortDescription: "Identify all GSTINs linked to a PAN and fetch each one's profile and return filing history",
+    description:
+      "Identifies all GSTINs related to an entity's PAN, then fetches profile information and return filing " +
+      "history for each Active GSTIN. When `liabilityDetails` is true, also returns the percentage of GST " +
+      "liability paid through GSTR-3B returns per financial year. Optionally filter by `stateCode` to limit which " +
+      "GSTINs are fetched (recommended when a PAN has 20+ GSTINs, to avoid timeouts). The portal calls the " +
+      "verification provider on your behalf using your credentials; you only send your platform API key.",
+    authNote: 'Pass your API key as the `x-api-key` request header. The vendor key is injected server-side.',
+    params: [
+      { name: 'x-api-key', in: 'header', required: true, type: 'string', description: 'Your platform API key', example: 'env_abc123...' },
+      { name: 'consent', in: 'body', required: true, type: 'string', description: 'Consent is required to make the API request', example: 'Y', enum: ['Y', 'N'] },
+      { name: 'pan', in: 'body', required: true, type: 'string', label: 'PAN Number', uppercase: true, placeholder: 'AAECP3450G', description: 'PAN to be authenticated', validation: { pattern: '^[A-Za-z]{5}\\d{4}[A-Za-z]{1}$', hint: '5 letters, 4 digits, 1 letter' } },
+      { name: 'liabilityDetails', in: 'body', required: false, type: 'boolean', description: 'Optional parameter to fetch percentage liabilities paid via GSTR-3B' },
+      { name: 'stateCode', in: 'body', required: false, type: 'array', description: "List of State Codes for which GSTIN's have to be fetched", validation: { pattern: '^\\d{2}$', hint: '2-digit codes, e.g. 29, 19' } },
+      { name: 'clientData', in: 'body', required: false, type: 'object', description: 'Data of the user sharing consent' },
+      { name: 'clientData.caseId', in: 'body', required: false, type: 'string', description: 'Unique case id/lead id of the user sharing consent', validation: { maxLength: 200, hint: 'Max-length 200' } },
+    ],
+    responseFields: [
+      { field: 'data.statusCode', type: 'integer', required: true, description: 'Internal Status Code that denotes the status of the request' },
+      { field: 'data.requestId', type: 'string', required: true, description: 'Unique id of the API request' },
+      { field: 'data.result', type: 'array', required: true, description: 'Response object for the given inputs — one entry per GSTIN found for the PAN' },
+      ...gstinEntryFields('data.result[].'),
+      { field: 'data.clientData', type: 'object', required: true, description: 'Data of the user sharing consent' },
+      { field: 'data.clientData.caseId', type: 'string', required: true, description: 'Unique case id/lead id of the user sharing consent' },
+    ],
+    exampleRequest: {
+      body: JSON.stringify({ pan: 'AAECP3450G', consent: 'Y', liabilityDetails: true, stateCode: ['29', '19', '33'], clientData: { caseId: '123456' } }, null, 2),
+    },
+    exampleResponse: JSON.stringify({
+      success: true,
+      data: {
+        requestId: '66eb3e64-6fe2-458d-a6c7-e8178535e0cd',
+        result: [
+          { authStatus: 'Inactive', applicationStatus: '', emailId: '', gstinId: '19AAECP3450G1ZG', gstinRefId: '', mobNum: '', pan: 'AAECP3450G', regType: '', registrationName: '', tinNumber: '', profile: {}, filingStatus: {} },
+          {
+            authStatus: 'Active', applicationStatus: '', emailId: '', gstinId: '29AAECP3450G1ZF', gstinRefId: '', mobNum: '', pan: 'AAECP3450G', regType: '', registrationName: '', tinNumber: '',
+            profile: {
+              stjCd: 'KA012', dty: 'Regular', stj: 'LGSTO 045 - Bengaluru', lgnm: 'SINGULARITY FURNITURE PRIVATE LIMITED',
+              gstin: '29AAECP3450G1ZF', tradeNam: 'SINGULARITY FURNITURE PRIVATE LIMITED', sts: 'Active',
+            },
+            filingStatus: {
+              gstin: '29AAECP3450G1ZF',
+              complianceStatus: { isAnyDelay: true, isDefaulter: false },
+              result: [{
+                eFiledlist: [{ valid: 'Y', mof: 'ONLINE', dof: '24-08-2021', retPrd: '042021', rtntype: 'GSTR3B', arn: 'AB2904211618913', status: 'Filed', dueDt: '2021-05-20', isDelay: true, delayDays: 96, liabPct: 100 }],
+                financialYear: '2021-22',
+                fyLiabPaidTotal: 105,
+              }],
+            },
+          },
+        ],
+        statusCode: 101,
+        clientData: { caseId: '123456' },
+      },
+    }, null, 2),
+    variants: GST_ADVANCED_VARIANTS,
+  },
+
+  // ── Verification (KYC) — GST Search Basis PAN (TKYC) ──────────────────────
+  {
+    id: 'verify-gst-by-pan',
+    label: 'GST Search Basis PAN',
+    group: 'KYC Authentication - Commercial',
+    method: 'POST',
+    path: '/api/verify/gst-by-pan',
+    shortDescription: 'Identify all GSTINs registered pan-India against a given PAN',
+    description:
+      "Identifies the GSTINs registered pan-India against an entity's PAN, returning each GSTIN's ID, " +
+      "registration status, and registration type. Use this as a lightweight lookup before calling GST " +
+      "Authentication or GST Advanced for full profile/filing details on a specific GSTIN. The portal calls the " +
+      "verification provider on your behalf using your credentials; you only send your platform API key.",
+    authNote: 'Pass your API key as the `x-api-key` request header. The vendor key is injected server-side.',
+    params: [
+      { name: 'x-api-key', in: 'header', required: true, type: 'string', description: 'Your platform API key', example: 'env_abc123...' },
+      { name: 'consent', in: 'body', required: true, type: 'string', description: 'Consent is required to make the API request.', example: 'Y', enum: ['Y', 'N'] },
+      { name: 'pan', in: 'body', required: true, type: 'string', label: 'PAN Number', uppercase: true, placeholder: 'AAACR5055K', description: 'PAN to be authenticated', validation: { pattern: '^[A-Za-z]{5}\\d{4}[A-Za-z]{1}$', hint: '5 letters, 4 digits, 1 letter' } },
+      { name: 'clientData', in: 'body', required: false, type: 'object', description: 'Data of the user sharing consent' },
+      { name: 'clientData.caseId', in: 'body', required: false, type: 'string', description: 'Unique case id/lead id of the user sharing consent', validation: { maxLength: 200, hint: 'Max-length 200' } },
+    ],
+    responseFields: [
+      { field: 'data.statusCode', type: 'integer', required: true, description: 'Internal Status Code that denotes the status of the request.' },
+      { field: 'data.requestId', type: 'string', required: true, description: 'Unique ID of the API request.' },
+      { field: 'data.result', type: 'array', required: false, description: 'Response object for the given inputs.' },
+      { field: 'data.result[].emailId', type: 'string', required: false, description: 'Email ID of the registered entity linked with the GSTIN' },
+      { field: 'data.result[].applicationStatus', type: 'string', required: false, description: 'Current status of application under GST (MIG = Migrated, DFT = Activated etc)' },
+      { field: 'data.result[].mobNum', type: 'string', required: false, description: 'Mobile Number of the registered entity linked with the GSTIN' },
+      { field: 'data.result[].pan', type: 'string', required: false, description: 'PAN Number of the registered entity' },
+      { field: 'data.result[].gstinRefId', type: 'string', required: false, description: 'Unique GST application reference ID' },
+      { field: 'data.result[].regType', type: 'string', required: false, description: 'Registration Type under GST (V=VAT, S=Service Tax)' },
+      { field: 'data.result[].authStatus', type: 'string', required: false, description: 'GSTIN Status (Active/Inactive)' },
+      { field: 'data.result[].gstinId', type: 'string', required: false, description: 'Unique 15 character GSTIN corresponding to the given tin' },
+      { field: 'data.result[].registrationName', type: 'string', required: false, description: 'Registered Name of the entity as per GST' },
+      { field: 'data.result[].tinNumber', type: 'string', required: false, description: 'Old VAT or Service Tax Tin associated with the GSTIN' },
+      { field: 'data.clientData', type: 'object', required: true, description: 'Data of the user sharing consent' },
+      { field: 'data.clientData.caseId', type: 'string', required: true, description: 'Unique case id/lead id of the user sharing consent' },
+    ],
+    exampleRequest: {
+      body: JSON.stringify({ consent: 'Y', pan: 'AAACR5055K', clientData: { caseId: '123456' } }, null, 2),
+    },
+    exampleResponse: JSON.stringify({
+      success: true,
+      data: {
+        statusCode: '101',
+        requestId: '7ad45acb-dc33-11e8-8063-cba6293b15e6',
+        result: [
+          { emailId: '', applicationStatus: '', mobNum: '', pan: 'AAACR5055K', gstinRefId: '', regType: '', authStatus: 'Active', gstinId: '09AAACR5055K1Z5', registrationName: '', tinNumber: '' },
+          { emailId: '', applicationStatus: '', mobNum: '', pan: 'AAACR5055K', gstinRefId: '', regType: '', authStatus: 'Active', gstinId: '03AAACR5055K2ZG', registrationName: '', tinNumber: '' },
+        ],
+        clientData: { caseId: '123456' },
+      },
+    }, null, 2),
+    variants: GST_BY_PAN_VARIANTS,
+  },
+
+  // ── Verification (KYC) — MCA Signatories (TKYC) ───────────────────────────
+  {
+    id: 'verify-mca-signatories',
+    label: 'MCA Signatories',
+    group: 'KYC Authentication - Commercial',
+    method: 'POST',
+    path: '/api/verify/mca-signatories',
+    shortDescription: 'Authenticate directors/partners of a company or LLP by CIN/LLPIN',
+    description:
+      'Authenticates the directors/partners of a company or LLP using the CIN (Company Identification Number) or ' +
+      'LLPIN issued by the Ministry of Corporate Affairs (MCA), returning each signatory\'s name, designation, ' +
+      'DIN/DPIN/PAN, address, appointment date, and Digital Signature Certificate status. The portal calls the ' +
+      'verification provider on your behalf using your credentials; you only send your platform API key.',
+    authNote: 'Pass your API key as the `x-api-key` request header. The vendor key is injected server-side.',
+    params: [
+      { name: 'x-api-key', in: 'header', required: true, type: 'string', description: 'Your platform API key', example: 'env_abc123...' },
+      { name: 'consent', in: 'body', required: true, type: 'string', description: 'Consent is required to make the API request.', example: 'Y', enum: ['Y', 'N'] },
+      { name: 'cin', in: 'body', required: true, type: 'string', label: 'CIN / LLPIN', uppercase: true, placeholder: 'AAA-1234', description: '15 character Company Identification Number or 8 character LLPIN issued by the Ministry of Corporate Affairs (MCA)', validation: { minLength: 21, maxLength: 21, hint: '21 chars' } },
+      { name: 'clientData', in: 'body', required: false, type: 'object', description: 'Data of the user sharing consent' },
+      { name: 'clientData.caseId', in: 'body', required: false, type: 'string', description: 'Unique case id/lead id of the user sharing consent', validation: { maxLength: 200, hint: 'Max-length 200' } },
+    ],
+    responseFields: [
+      { field: 'data.status-code', type: 'string', required: true, description: 'Internal Status Code that denotes the status of the request.' },
+      { field: 'data.request_id', type: 'string', required: true, description: 'Unique ID of the API request.' },
+      { field: 'data.result', type: 'array', required: false, description: 'List of directors/partners.' },
+      { field: 'data.result[].date_of_appointment', type: 'string', required: false, description: 'Date of Appointment of director/partner' },
+      { field: 'data.result[].designation', type: 'string', required: false, description: 'Designation of director/partner' },
+      { field: 'data.result[].dsc_expiry_date', type: 'string', required: false, description: 'Expiry date of Digital Signature Certificate of director/partner' },
+      { field: 'data.result[].address', type: 'string', required: false, description: 'Address of director/partner' },
+      { field: 'data.result[].DIN/DPIN/PAN', type: 'string', required: false, description: 'DIN/DPIN/PAN of director/partner' },
+      { field: 'data.result[].full_name', type: 'string', required: false, description: 'Full Name of director/partner' },
+      { field: 'data.result[].wheather_dsc_registered', type: 'string', required: false, description: 'Whether DSC registered' },
+      { field: 'data.clientData', type: 'object', required: true, description: 'Data of the user sharing consent' },
+      { field: 'data.clientData.caseId', type: 'string', required: true, description: 'Unique case id/lead id of the user sharing consent' },
+    ],
+    exampleRequest: {
+      body: JSON.stringify({ consent: 'Y', cin: 'AAA-1234', clientData: { caseId: '123456' } }, null, 2),
+    },
+    exampleResponse: JSON.stringify({
+      success: true,
+      data: {
+        'status-code': '101',
+        request_id: '8e236fe9-d8fa-11e7-8bbb-5f3dd11329a1',
+        result: [
+          {
+            date_of_appointment: '28/04/2010', designation: 'Designated Partner', dsc_expiry_date: '05/10/2019',
+            address: 'NIRMAL ANAND CO OP HSG SOC. FLAT NO. 5 A-WING 2ND FLOOR J.P.ROAD ANDHERI WEST MUMBAI 400058',
+            'DIN/DPIN/PAN': '05005591', full_name: 'GADA JITENDRA RAGHAVJI', wheather_dsc_registered: 'Yes',
+          },
+        ],
+        clientData: { caseId: '123456' },
+      },
+    }, null, 2),
+    variants: MCA_SIGNATORIES_VARIANTS,
+  },
+
+  // ── Verification (KYC) — Udyog Aadhar Number (TKYC) ───────────────────────
+  {
+    id: 'verify-udyog-aadhaar',
+    label: 'Udyog Aadhar Number',
+    group: 'KYC Authentication - Commercial',
+    method: 'POST',
+    path: '/api/verify/udyog-aadhaar',
+    shortDescription: 'Authenticate a Udyog Aadhaar Number (UAN) issued by the Ministry of MSME',
+    description:
+      'Authenticates a Udyog Aadhaar Number issued by the Ministry of Micro, Small & Medium Enterprises, ' +
+      'returning enterprise name, owner details, registration address, activity classification, and bank/PAN ' +
+      'details on file. The portal calls the verification provider on your behalf using your credentials; you ' +
+      'only send your platform API key.',
+    authNote: 'Pass your API key as the `x-api-key` request header. The vendor key is injected server-side.',
+    params: [
+      { name: 'x-api-key', in: 'header', required: true, type: 'string', description: 'Your platform API key', example: 'env_abc123...' },
+      { name: 'consent', in: 'body', required: true, type: 'string', description: 'Consent is required to make the API request.', example: 'Y', enum: ['Y', 'N'] },
+      { name: 'uan', in: 'body', required: true, type: 'string', label: 'Udyog Aadhaar Number', uppercase: true, placeholder: 'GJ20A0007692', description: '12 character Udyog Aadhaar Number to be authenticated', validation: { minLength: 12, maxLength: 12, pattern: '^[A-Z]{2}\\d{2}[A-Z]{1}\\d{7}$', hint: '2 letters, 2 digits, 1 letter, 7 digits' } },
+      { name: 'mobile', in: 'body', required: false, type: 'string', placeholder: '9876543210', description: 'Mobile Number registered against the UAN', validation: { pattern: '^[6-9]{1}[0-9]{9}$', hint: '10 digits, starts with 6-9' } },
+      { name: 'clientData', in: 'body', required: false, type: 'object', description: 'Data of the user sharing consent' },
+      { name: 'clientData.caseId', in: 'body', required: false, type: 'string', description: 'Unique case id/lead id of the user sharing consent', validation: { maxLength: 200, hint: 'Max-length 200' } },
+    ],
+    responseFields: [
+      { field: 'data.status-code', type: 'string', required: true, description: 'Internal Status Code that denotes the status of the request.' },
+      { field: 'data.request_id', type: 'string', required: true, description: 'Unique ID of the API request.' },
+      { field: 'data.result', type: 'object', required: true, description: 'Response object for the given inputs.' },
+      { field: 'data.result.pin', type: 'string', required: false, description: 'Pin Code of the place of registration' },
+      { field: 'data.result.DateOFCommencement', type: 'string', required: false, description: 'Date of commencement of business of the entity' },
+      { field: 'data.result.appliedDate', type: 'string', required: false, description: 'Date of application as per source' },
+      { field: 'data.result.modifiedDate', type: 'string', required: false, description: 'Date of modification as per source' },
+      { field: 'data.result.addedOn', type: 'string', required: false, description: 'Date of addition of National Industry Classification code as per source' },
+      { field: 'data.result.aadhar', type: 'string', required: false, description: 'Aadhaar number of the owner of the entity' },
+      { field: 'data.result.district', type: 'string', required: false, description: 'District of the place of registration of the entity' },
+      { field: 'data.result.DistrictIndustryCentre', type: 'string', required: false, description: 'District Industry Center corresponding to the place of registration of the entity' },
+      { field: 'data.result.NameofEnterPrise', type: 'string', required: false, description: 'Registered name of the entity' },
+      { field: 'data.result.NumberofEmp', type: 'string', required: false, description: 'No. of employees declared by the entity' },
+      { field: 'data.result.state', type: 'string', required: false, description: 'State of registration of the entity' },
+      { field: 'data.result.OwnerName', type: 'string', required: false, description: 'Registered name of the Owner' },
+      { field: 'data.result.MajorActivity', type: 'string', required: false, description: 'Registered nature of business / activity of the entity' },
+      { field: 'data.result.email', type: 'string', required: false, description: 'Registered email id of the entity' },
+      { field: 'data.result.pan', type: 'string', required: false, description: 'Registered PAN of the Entity' },
+      { field: 'data.result.ifsc', type: 'string', required: false, description: 'IFSC Code of the registered Bank Account of the Entity' },
+      { field: 'data.result.mobile', type: 'string', required: false, description: 'Registered mobile number of the entity' },
+      { field: 'data.result.address', type: 'string', required: false, description: 'Registered Address of the entity' },
+      { field: 'data.result.social_category', type: 'string', required: false, description: 'Registered Social Category of the entity, GENERAL, SC, ST, OBC etc' },
+      { field: 'data.result.AccountNumber', type: 'string', required: false, description: 'Registered Bank account number of the entity' },
+      { field: 'data.result.EntType', type: 'string', required: false, description: 'Size of the organization, Micro, Small, Medium' },
+      { field: 'data.result.gender', type: 'string', required: false, description: 'Gender of the owner' },
+      { field: 'data.result.type_of_org', type: 'string', required: false, description: 'Registered constitution of the entity' },
+      { field: 'data.result.Investment', type: 'string', required: false, description: 'Declared amount of investment of the owners in the business' },
+      { field: 'data.result.NIC_Digit_Code', type: 'string', required: false, description: 'NIC Activity Code of business of the entity' },
+      { field: 'data.clientData', type: 'object', required: true, description: 'Data of the user sharing consent' },
+      { field: 'data.clientData.caseId', type: 'string', required: true, description: 'Unique case id/lead id of the user sharing consent' },
+    ],
+    exampleRequest: {
+      body: JSON.stringify({ consent: 'Y', uan: 'GJ20A0007692', mobile: '', clientData: { caseId: '123456' } }, null, 2),
+    },
+    exampleResponse: JSON.stringify({
+      success: true,
+      data: {
+        request_id: '9641111f-2cc5-410f-9696-fa860dd4ceac',
+        result: {
+          AccountNumber: '', DateOFCommencement: '21/11/1995', DistrictIndustryCentre: 'RAJKOT',
+          EntType: 'A - Micro', Investment: '', NIC_Digit_Code: 'XXXX-Manufacture of other electrical equipment',
+          NameofEnterPrise: 'XXX XXXX', NumberofEmp: '', OwnerName: '', aadhar: '', addedOn: '02/05/2016',
+          address: '', appliedDate: '02/05/2016', district: '', email: '', gender: '', ifsc: '', mobile: '',
+          modifiedDate: 'N/A', pan: '', pin: '', social_category: 'General', state: 'GUJARAT', type_of_org: '',
+        },
+        'status-code': '101',
+        clientData: { caseId: '123456' },
+      },
+    }, null, 2),
+    variants: UDYOG_AADHAAR_VARIANTS,
+  },
+
+  // ── Verification (KYC) — Employment Verification Advanced (PAN Flow) (TKYC) ──
+  {
+    id: 'verify-employment-advanced',
+    label: 'Employment Verification Advanced (PAN Flow)',
+    group: 'Employment & Income',
+    method: 'POST',
+    path: '/api/verify/employment-advanced',
+    shortDescription: "Authenticate and verify an individual's employment history using PAN, EPFO/UAN, and email/domain checks",
+    description:
+      "Authenticates and verifies the employment history of an individual using their PAN number. Cross-checks " +
+      "EPFO/UAN contribution history, employer name/domain matches, work email validity and organization " +
+      "ownership, and returns personal info, a per-check summary, and an overall waiveFi recommendation. Supports " +
+      "an optional PDF report link. The portal calls the verification provider on your behalf using your " +
+      "credentials; you only send your platform API key.",
+    authNote: 'Pass your API key as the `x-api-key` request header. The vendor key is injected server-side.',
+    params: [
+      { name: 'x-api-key', in: 'header', required: true, type: 'string', description: 'Your platform API key', example: 'env_abc123...' },
+      { name: 'consent', in: 'body', required: true, type: 'string', description: 'Consent is required to make the API request.', example: 'Y', enum: ['Y', 'N'] },
+      { name: 'uans', in: 'body', required: false, type: 'array', description: 'UAN(s) allotted to the individual by EPFO', validation: { pattern: '^[0-9]{12}$', hint: '12 digits per item' } },
+      { name: 'entityId', in: 'body', required: false, type: 'string', description: 'Entity ID/CIN of the Company' },
+      { name: 'employerName', in: 'body', required: false, type: 'string', description: 'Employer Name', validation: { minLength: 3, maxLength: 255, hint: '3-255 chars' } },
+      { name: 'employeeName', in: 'body', required: false, type: 'string', description: 'Employee Name', validation: { minLength: 3, maxLength: 50, hint: '3-50 chars' } },
+      { name: 'mobile', in: 'body', required: false, type: 'string', description: 'Mobile Number of the Individual', validation: { pattern: '^[6-9]\\d{9}$', hint: '10 digits, starts with 6-9' } },
+      { name: 'emailId', in: 'body', required: false, type: 'string', description: 'Work Email of the Individual' },
+      { name: 'runPanFlow', in: 'body', required: true, type: 'boolean', description: 'Trigger PAN Flow' },
+      { name: 'pan', in: 'body', required: true, type: 'string', label: 'PAN Number', uppercase: true, placeholder: 'DFKAB1295K', description: 'PAN number of the individual', validation: { minLength: 10, maxLength: 10, pattern: '^[A-Za-z]{5}\\d{4}[A-Za-z]{1}$', hint: '5 letters, 4 digits, 1 letter' } },
+      { name: 'showFailures', in: 'body', required: false, type: 'boolean', description: 'Shows details regarding the failures' },
+      { name: 'isLatestEmployer', in: 'body', required: false, type: 'boolean', description: 'To trigger the latest employer flow' },
+      { name: 'pdf', in: 'body', required: false, type: 'boolean', description: 'If this is true then get the pdf link in the response' },
+      { name: 'clientData', in: 'body', required: false, type: 'object', description: 'Data of the user sharing consent' },
+      { name: 'clientData.caseId', in: 'body', required: false, type: 'string', description: 'Unique case id/lead id of the user sharing consent', validation: { maxLength: 200, hint: 'Max-length 200' } },
+    ],
+    responseFields: [
+      { field: 'data.status-code', type: 'string', required: true, description: 'Internal Status Code that denotes the status of the request.' },
+      { field: 'data.request_id', type: 'string', required: true, description: 'Unique id of the API request.' },
+      ...employmentAdvancedResponseFields('data.'),
+      { field: 'data.clientData', type: 'object', required: true, description: 'Data of the user sharing consent' },
+      { field: 'data.clientData.caseId', type: 'string', required: true, description: 'Unique case id/lead id of the user sharing consent' },
+    ],
+    exampleRequest: {
+      body: JSON.stringify({
+        uans: ['1xxxxxxxxxx4'], entityId: 'U74120MH2015PTC265316', employerName: 'Perfios Software Solutions Private Limited',
+        employeeName: 'Swarnava Maitra', mobile: '8xxxxxxxx6', emailId: 'sawrnava.m@perfios.com', runPanFlow: true,
+        pan: 'DFKxxxx95K', showFailures: true, isLatestEmployer: true, pdf: true, consent: 'Y', clientData: { caseId: '123456' },
+      }, null, 2),
+    },
+    exampleResponse: JSON.stringify({
+      success: true,
+      data: {
+        result: {
+          email: { result: true, data: { email: 'sawrnava.m@perfios.com', result: true } },
+          nameLookup: { organizationName: 'Perfios Software Solution Private Limited', isNameExact: true, isEmployed: true, isRecent: true, isNameUnique: true, employeeName: 'SWARNAVA MAITRA' },
+          uan: [{ uan: '10xxxxxxxxxx', uanSource: 'pan', employer: [{ name: 'Perfios Software Solution Private Limited', isEmployed: true, uanNameMatch: true }], failures: [] }],
+          personalInfo: { name: 'SWARNAVA MAITRA', dateOfBirth: '1993-11-03', gender: 'M', pan: 'DFKxxxx95K', uan: '10xxxxxxxxxx' },
+          summary: { emailValid: true, nameLookup: { result: true }, uanLookup: { result: true, uanNameMatch: true }, waiveFi: true },
+          failures: [],
+          pdfLink: '',
+        },
+        request_id: '1a06cb30-9dad-41f2-8a05-7cf92504263d',
+        'status-code': '101',
+        clientData: { caseId: '123456' },
+      },
+    }, null, 2),
+    variants: EMPLOYMENT_ADVANCED_VARIANTS,
+  },
+
+  // ── Verification (KYC) — Digital FootPrint (Mobile) (TKYC) ───────────────
+  {
+    id: 'verify-footprint-mobile',
+    label: 'Digital FootPrint (Mobile)',
+    group: 'Digital Essentials',
+    method: 'POST',
+    path: '/api/verify/footprint-mobile',
+    shortDescription: "Assess risk level for a phone number using its digital presence and network details",
+    description:
+      "Assesses the risk level of a phone number based on its digital footprint — social media, e-commerce, " +
+      "statutory, and financial platform presence — plus network details (carrier, porting status, roaming, " +
+      "connection status) and whether the number has been seen in past fraud. Returns a risk score and level " +
+      "(Red/Yellow/Green). The portal calls the verification provider on your behalf using your credentials; you " +
+      "only send your platform API key.",
+    authNote: 'Pass your API key as the `x-api-key` request header. The vendor key is injected server-side.',
+    params: [
+      { name: 'x-api-key', in: 'header', required: true, type: 'string', description: 'Your platform API key', example: 'env_abc123...' },
+      { name: 'consent', in: 'body', required: true, type: 'string', description: 'Consent is required to make the API request.', example: 'Y', enum: ['Y', 'N'] },
+      { name: 'mobile', in: 'body', required: true, type: 'string', label: 'Mobile Number', placeholder: '9876543210', description: 'Mobile Number', validation: { pattern: '^[6-9]{1}[0-9]{9}$', hint: '10 digits, starts with 6-9' } },
+      { name: 'phoneDetails', in: 'body', required: false, type: 'string', description: 'If phone number related details are required.', example: 'Y', enum: ['Y', 'N'] },
+      { name: 'statutoryPresenceRequired', in: 'body', required: false, type: 'string', description: 'If Mobile to statutory presence related details are required', example: 'Y', enum: ['Y', 'N'] },
+      { name: 'financialPresenceRequired', in: 'body', required: false, type: 'string', description: 'If Mobile to financial Presence related details are required', example: 'Y', enum: ['Y', 'N'] },
+      { name: 'rcLinkageRequired', in: 'body', required: false, type: 'string', description: 'If Mobile to RC Linkage related details are required', example: 'Y', enum: ['Y', 'N'] },
+      { name: 'clientData', in: 'body', required: false, type: 'object', description: 'Data of the user sharing consent' },
+      { name: 'clientData.caseId', in: 'body', required: false, type: 'string', description: 'Unique case id/lead id of the user sharing consent', validation: { maxLength: 200, hint: 'Max-length 200' } },
+    ],
+    responseFields: [
+      { field: 'data.statusCode', type: 'integer', required: true, description: 'Internal Status Code that denotes the status of the request.' },
+      { field: 'data.requestId', type: 'string', required: true, description: 'Unique id of the API request.' },
+      { field: 'data.result', type: 'object', required: true, description: 'Response object for the given inputs.' },
+      { field: 'data.result.riskScore', type: 'integer', required: false, description: 'Risk Score against this mobile number' },
+      { field: 'data.result.riskLevel', type: 'string', required: false, description: 'Risk level against this score - Red, Yellow, Green' },
+      { field: 'data.result.isEmployed', type: 'boolean', required: false, description: 'Whether the individual is employed or not' },
+      { field: 'data.result.digitalPresence', type: 'object', required: false, description: 'Digital Presence Information' },
+      { field: 'data.result.digitalPresence.socialMedia', type: 'integer', required: false, description: 'Count of social media platform' },
+      { field: 'data.result.digitalPresence.essentials', type: 'integer', required: false, description: 'Count of daily essential platform' },
+      { field: 'data.result.digitalPresence.ecommerce', type: 'integer', required: false, description: 'Count of ecommerce platform' },
+      { field: 'data.result.digitalPresence.educational', type: 'integer', required: false, description: 'Count of educational platform' },
+      { field: 'data.result.digitalPresence.entertainment', type: 'integer', required: false, description: 'Count of entertainment platform' },
+      { field: 'data.result.digitalPresence.statutoryPresence', type: 'integer', required: false, description: 'Count of statutory presence platform' },
+      { field: 'data.result.digitalPresence.dating', type: 'integer', required: false, description: 'Count of dating app platform' },
+      { field: 'data.result.digitalPresence.professional', type: 'integer', required: false, description: 'Count of Professional platform' },
+      { field: 'data.result.digitalPresence.financialpresence', type: 'integer', required: false, description: 'Count of financial channels associated with the user' },
+      { field: 'data.result.phoneDetails', type: 'object', required: false, description: 'Network details' },
+      { field: 'data.result.phoneDetails.countryName', type: 'string', required: false, description: 'Country of phone number' },
+      { field: 'data.result.phoneDetails.isPorted', type: 'boolean', required: false, description: 'Whether the connection is ported' },
+      { field: 'data.result.phoneDetails.subscriberStatus', type: 'string', required: false, description: 'Subscriber Status ["CONNECTED", "ABSENT", "UNKNOWN_MSISDN", "UNDETERMINED", "INVALID"]' },
+      { field: 'data.result.phoneDetails.connectionStatusCode', type: 'string', required: false, description: 'Connection status code ["DELIVERED", "UNDELIVERED", "UNKNOWN", "REJECTED", "ERROR"]' },
+      { field: 'data.result.phoneDetails.connectionType', type: 'string', required: false, description: 'Subscriber / connection type [Prepaid or Postpaid]' },
+      { field: 'data.result.phoneDetails.currentProvider', type: 'string', required: false, description: 'Current mobile network provider' },
+      { field: 'data.result.phoneDetails.originalProvider', type: 'string', required: false, description: 'Details of the original mobile network' },
+      { field: 'data.result.phoneDetails.roamingProvider', type: 'string', required: false, description: 'Roaming details' },
+      { field: 'data.result.phoneDetails.location', type: 'string', required: false, description: 'Location as per network' },
+      { field: 'data.result.phoneDetails.currentServiceProviderNetworkName', type: 'string', required: false, description: 'Current service provider' },
+      { field: 'data.result.phoneDetails.roamingServiceProviderNetworkName', type: 'string', required: false, description: 'Roaming service providers' },
+      { field: 'data.result.phoneDetails.originalServiceProviderNetworkName', type: 'string', required: false, description: 'Original service providers' },
+      { field: 'data.result.phoneDetails.mobileAge', type: 'string', required: false, description: 'Approximate age of the mobile number' },
+      { field: 'data.result.phoneDetails.status', type: 'string', required: false, description: 'Current status of the number (Active, Inactive.)' },
+      { field: 'data.result.seenInPastFraud', type: 'boolean', required: false, description: 'If this number was seen in any fraud in the past' },
+      { field: 'data.clientData', type: 'object', required: true, description: 'Data of the user sharing consent' },
+      { field: 'data.clientData.caseId', type: 'string', required: true, description: 'Unique case id/lead id of the user sharing consent' },
+    ],
+    exampleRequest: {
+      body: JSON.stringify({
+        mobile: '9xxxxxxxx8', phoneDetails: 'Y', statutoryPresenceRequired: 'Y', financialPresenceRequired: 'Y',
+        rcLinkageRequired: 'Y', consent: 'Y', clientData: { caseId: '123456' },
+      }, null, 2),
+    },
+    exampleResponse: JSON.stringify({
+      success: true,
+      data: {
+        requestId: 'bd633a60-3588-49c0-a2ee-8b8cc0d1fea8',
+        result: {
+          riskScore: 0, riskLevel: 'green', isEmployed: true,
+          digitalPresence: { socialMedia: 1, essentials: 2, ecommerce: 3, educational: 0, entertainment: 1, statutoryPresence: 4, dating: 0, professional: 0, financialpresence: 3 },
+          phoneDetails: {
+            countryName: 'India', isPorted: false, subscriberStatus: 'CONNECTED', connectionStatusCode: 'DELIVERED',
+            connectionType: null, currentProvider: 'idea', originalProvider: 'idea', roamingProvider: null,
+            location: 'mumbai', currentServiceProviderNetworkName: 'IDEA // Mumbai', roamingServiceProviderNetworkName: null,
+            originalServiceProviderNetworkName: 'IDEA // Mumbai', mobileAge: '10 to 11 Years', status: 'Active',
+          },
+          seenInPastFraud: false,
+        },
+        statusCode: 101,
+        clientData: { caseId: '123456' },
+      },
+    }, null, 2),
+    variants: DIGITAL_FOOTPRINT_MOBILE_VARIANTS,
+  },
+
+  // ── Verification (KYC) — Digital Foot Print (Email) (TKYC) ───────────────
+  {
+    id: 'verify-footprint-email',
+    label: 'Digital Foot Print (Email)',
+    group: 'Digital Essentials',
+    method: 'POST',
+    path: '/api/verify/footprint-email',
+    shortDescription: 'Assess risk level for an email address using its digital presence and mailbox validity',
+    description:
+      'Assesses the risk level of an email address based on its digital footprint — social media, e-commerce, ' +
+      'statutory, and professional platform presence — plus mailbox validity checks (disposable, webmail, SMTP, ' +
+      'MX records) and whether the address has been seen in past fraud. Returns a risk score and level ' +
+      '(Red/Yellow/Green). The portal calls the verification provider on your behalf using your credentials; you ' +
+      'only send your platform API key.',
+    authNote: 'Pass your API key as the `x-api-key` request header. The vendor key is injected server-side.',
+    params: [
+      { name: 'x-api-key', in: 'header', required: true, type: 'string', description: 'Your platform API key', example: 'env_abc123...' },
+      { name: 'consent', in: 'body', required: true, type: 'string', description: 'Consent is required to make the API request.', example: 'Y', enum: ['Y', 'N'] },
+      { name: 'email', in: 'body', required: true, type: 'string', description: 'Email Id' },
+      { name: 'clientData', in: 'body', required: false, type: 'object', description: 'Data of the user sharing consent' },
+      { name: 'clientData.caseId', in: 'body', required: false, type: 'string', description: 'Unique case id/lead id of the user sharing consent', validation: { maxLength: 200, hint: 'Max-length 200' } },
+    ],
+    responseFields: [
+      { field: 'data.statusCode', type: 'integer', required: true, description: 'Internal Status Code that denotes the status of the request.' },
+      { field: 'data.requestId', type: 'string', required: true, description: 'Unique id of the API request.' },
+      { field: 'data.result', type: 'object', required: true, description: 'Response object for the given inputs.' },
+      { field: 'data.result.riskScore', type: 'integer', required: false, description: 'Risk Score against this email id' },
+      { field: 'data.result.riskLevel', type: 'string', required: false, description: 'Risk level against this score - Red, Yellow, Green' },
+      { field: 'data.result.isEmployed', type: 'boolean', required: false, description: 'Whether the individual is employed or not' },
+      { field: 'data.result.digitalPresence', type: 'object', required: false, description: 'Digital Presence Information' },
+      { field: 'data.result.digitalPresence.socialMedia', type: 'integer', required: false, description: 'Count of social media platform' },
+      { field: 'data.result.digitalPresence.essentials', type: 'integer', required: false, description: 'Count of daily essential platform' },
+      { field: 'data.result.digitalPresence.ecommerce', type: 'integer', required: false, description: 'Count of ecommerce platform' },
+      { field: 'data.result.digitalPresence.educational', type: 'integer', required: false, description: 'Count of educational platform' },
+      { field: 'data.result.digitalPresence.entertainment', type: 'integer', required: false, description: 'Count of entertainment platform' },
+      { field: 'data.result.digitalPresence.statutoryPresence', type: 'integer', required: false, description: 'Count of statutory presence platform' },
+      { field: 'data.result.digitalPresence.dating', type: 'integer', required: false, description: 'Count of dating app platform' },
+      { field: 'data.result.digitalPresence.professional', type: 'integer', required: false, description: 'Count of Professional platform' },
+      { field: 'data.result.emailDetails', type: 'object', required: false, description: 'Email related information' },
+      { field: 'data.result.emailDetails.disposable', type: 'boolean', required: false, description: 'Whether the given email id is from a disposable email provider' },
+      { field: 'data.result.emailDetails.webmail', type: 'boolean', required: false, description: 'Whether the email address is from a free webmail provider' },
+      { field: 'data.result.emailDetails.result', type: 'string', required: false, description: 'Overall validity result of the email' },
+      { field: 'data.result.emailDetails.acceptAll', type: 'boolean', required: false, description: 'The SMTP server accepts all emails as valid via proxy (uncertain validity in this case)' },
+      { field: 'data.result.emailDetails.smtpCheck', type: 'boolean', required: false, description: 'Whether the email id is accessible on the SMTP server (False implies it will bounce)' },
+      { field: 'data.result.emailDetails.regexp', type: 'boolean', required: false, description: 'Whether the email id follows a valid regular expression' },
+      { field: 'data.result.emailDetails.mxRecords', type: 'boolean', required: false, description: 'Whether mail exchanger records exist for the given email address' },
+      { field: 'data.result.emailDetails.smtpServer', type: 'boolean', required: false, description: 'Whether the email id is accessible on the SMTP server (False implies it will bounce)' },
+      { field: 'data.result.emailDetails.isBlocked', type: 'boolean', required: false, description: 'Email domain Blocked status' },
+      { field: 'data.result.emailDetails.reason', type: 'string', required: false, description: 'The reason for the Email domain Blockage' },
+      { field: 'data.result.seenInPastFraud', type: 'boolean', required: false, description: 'If this email was seen in any fraud in the past' },
+      { field: 'data.clientData', type: 'object', required: true, description: 'Data of the user sharing consent' },
+      { field: 'data.clientData.caseId', type: 'string', required: true, description: 'Unique case id/lead id of the user sharing consent' },
+    ],
+    exampleRequest: {
+      body: JSON.stringify({ email: 'anurag.narkhede@gmail.com', consent: 'Y', clientData: { caseId: '123456' } }, null, 2),
+    },
+    exampleResponse: JSON.stringify({
+      success: true,
+      data: {
+        requestId: '66a67f88-9ec6-4c06-8afa-aa0d3b56a81c',
+        result: {
+          riskScore: 0, riskLevel: 'green', isEmployed: false,
+          digitalPresence: { socialMedia: 3, essentials: 3, ecommerce: 2, educational: 0, entertainment: 1, statutoryPresence: 0, dating: 0, professional: 7 },
+          emailDetails: { disposable: false, webmail: false, result: 'valid', acceptAll: false, smtpCheck: true, regexp: true, mxRecords: true, smtpServer: true, isBlocked: false, reason: 'user_exist' },
+          seenInPastFraud: null,
+        },
+        statusCode: 101,
+        clientData: { caseId: '123456' },
+      },
+    }, null, 2),
+    variants: DIGITAL_FOOTPRINT_EMAIL_VARIANTS,
+  },
+
+  // ── Verification (KYC) — Email Fraud Check (TKYC) ─────────────────────────
+  {
+    id: 'verify-email-fraud',
+    label: 'Email Fraud Check',
+    group: 'Digital Essentials',
+    method: 'POST',
+    path: '/api/verify/email-fraud',
+    shortDescription: 'Check fraud and risk associated with an email address, its domain, and an IP address',
+    description:
+      'Checks fraud and risk associated with an email address, its domain, and an optional IP address — email ' +
+      'owner identity, domain validation/age, social media presence, and a composite fraud risk score with band ' +
+      'and advice. When an IP is supplied, also returns IP reputation, geolocation, and proxy/device risk. The ' +
+      'portal calls the verification provider on your behalf using your credentials; you only send your platform ' +
+      'API key.',
+    authNote: 'Pass your API key as the `x-api-key` request header. The vendor key is injected server-side.',
+    params: [
+      { name: 'x-api-key', in: 'header', required: true, type: 'string', description: 'Your platform API key', example: 'env_abc123...' },
+      { name: 'consent', in: 'body', required: true, type: 'string', description: 'Consent is required to make the API request.', example: 'Y', enum: ['Y', 'N'] },
+      { name: 'email', in: 'body', required: false, type: 'string', description: 'Given email id in the format example@example.com' },
+      { name: 'ipAddress', in: 'body', required: false, type: 'string', description: 'IP address of the owner (Supported IP formats - IPv4, IPv6, IPv6 Compressed)' },
+      { name: 'firstName', in: 'body', required: false, type: 'string', description: 'First name of the owner of given email ID' },
+      { name: 'lastName', in: 'body', required: false, type: 'string', description: 'Last name of the owner of given email ID' },
+      { name: 'clientData', in: 'body', required: false, type: 'object', description: 'Data of the user sharing consent' },
+      { name: 'clientData.caseId', in: 'body', required: false, type: 'string', description: 'Unique case id/lead id of the user sharing consent', validation: { maxLength: 200, hint: 'Max-length 200' } },
+    ],
+    responseFields: [
+      { field: 'data.statusCode', type: 'integer', required: true, description: 'Internal Status Code that denotes the status of the request.' },
+      { field: 'data.requestId', type: 'string', required: true, description: 'Unique id of the API request.' },
+      ...emailFraudResponseFields('data.'),
+      { field: 'data.clientData', type: 'object', required: true, description: 'Data of the user sharing consent' },
+      { field: 'data.clientData.caseId', type: 'string', required: true, description: 'Unique case id/lead id of the user sharing consent' },
+    ],
+    exampleRequest: {
+      body: JSON.stringify({ email: 'kailas@dhyeyapurti.org', consent: 'Y', ipAddress: '141.161.19.1', firstName: 'Kailas', lastName: 'dhyey', clientData: { caseId: '123456' } }, null, 2),
+    },
+    exampleResponse: JSON.stringify({
+      success: true,
+      data: {
+        requestId: '0d44f3e8-d1ec-44bb-b48b-ce065bd2eb15',
+        result: [
+          {
+            emailOwnerDetails: { email: 'kailas@dhyeyapurti.org', name: 'Kailas Adhav', company: 'Chairman :- Dhyeyapurti Seva....& Pro. Turiya Infotech, Nashik', title: 'Service Provider', nameMatch: 'P', location: 'Nashik, India' },
+            domainDetails: { domainName: 'dhyeyapurti.org', domainCompany: '', country: 'IN', domainCountryName: 'India', domainCategory: '', domainCorporate: '' },
+            emailAndDomainRiskDetails: { score: '73', fraudRisk: '073 Very Low', advice: 'Lower Fraud Risk', riskBand: 'Fraud Score 1 to 100', domainRiskLevel: 'Moderate' },
+            ipDetails: { ipAddress: '141.161.19.1', ipReputation: 'Good', ipAnonymousDetected: 'No', ipIsp: 'georgetown university' },
+            ipAndDeviceDetails: { ipRiskLevel: 'Moderate', ipRiskReason: 'Moderate By Proxy Reputation And Country Code' },
+          },
+        ],
+        statusCode: 101,
+        clientData: { caseId: '123456' },
+      },
+    }, null, 2),
+    variants: EMAIL_FRAUD_VARIANTS,
+  },
+
+  // ── Verification (KYC) — Mobile to Form Prefill (TKYC) ────────────────────
+  {
+    id: 'verify-mobile-prefill',
+    label: 'Mobile to Form Prefill',
+    group: 'Digital Essentials',
+    method: 'POST',
+    path: '/api/verify/mobile-prefill',
+    shortDescription: "Prefill customer PAN and identity details using just a mobile number",
+    description:
+      "Prefills customer information — PAN number, name, split name, address, gender, date of birth, and " +
+      "Aadhaar-PAN link status — using only a mobile number. Useful for speeding up onboarding forms. The portal " +
+      "calls the verification provider on your behalf using your credentials; you only send your platform API key.",
+    authNote: 'Pass your API key as the `x-api-key` request header. The vendor key is injected server-side.',
+    params: [
+      { name: 'x-api-key', in: 'header', required: true, type: 'string', description: 'Your platform API key', example: 'env_abc123...' },
+      { name: 'consent', in: 'body', required: true, type: 'string', description: 'Consent is required to make the API request.', example: 'Y', enum: ['Y', 'N'] },
+      { name: 'mobile', in: 'body', required: true, type: 'string', label: 'Mobile Number', placeholder: '9876543210', description: '10 Digit mobile number', validation: { hint: '10 digits' } },
+      { name: 'clientData', in: 'body', required: false, type: 'object', description: 'Data of the user sharing consent' },
+      { name: 'clientData.caseId', in: 'body', required: false, type: 'string', description: 'Unique case id/lead id of the user sharing consent', validation: { maxLength: 200, hint: 'Max-length 200' } },
+    ],
+    responseFields: [
+      { field: 'data.statusCode', type: 'integer', required: true, description: 'Internal Status Code that denotes the status of the request.' },
+      { field: 'data.requestId', type: 'string', required: true, description: 'Unique id of the API request.' },
+      { field: 'data.result', type: 'object', required: true, description: 'Response object for the given inputs.' },
+      { field: 'data.result.mobileNumber', type: 'string', required: false, description: 'Mobile Number' },
+      { field: 'data.result.pan', type: 'string', required: false, description: 'PAN Number' },
+      { field: 'data.result.panDetails', type: 'object', required: false, description: 'PAN Details' },
+      { field: 'data.result.panDetails.fullName', type: 'string', required: false, description: 'Full name of PAN card holder' },
+      { field: 'data.result.panDetails.splitName', type: 'array', required: false, description: 'Split Name of PAN card holder' },
+      { field: 'data.result.panDetails.address', type: 'object', required: false, description: 'Address as per PAN card' },
+      { field: 'data.result.panDetails.address.line_1', type: 'string', required: false, description: 'Address line 1' },
+      { field: 'data.result.panDetails.address.line_2', type: 'string', required: false, description: 'Address line 2' },
+      { field: 'data.result.panDetails.address.street_name', type: 'string', required: false, description: 'Street Location as on the Address' },
+      { field: 'data.result.panDetails.address.zip', type: 'string', required: false, description: 'Zip code as on the Address' },
+      { field: 'data.result.panDetails.address.city', type: 'string', required: false, description: 'City as on the Address' },
+      { field: 'data.result.panDetails.address.state', type: 'string', required: false, description: 'State as on the Address' },
+      { field: 'data.result.panDetails.address.country', type: 'string', required: false, description: 'Country as on the Address' },
+      { field: 'data.result.panDetails.address.full', type: 'string', required: false, description: 'Complete address as per PAN card' },
+      { field: 'data.result.panDetails.gender', type: 'string', required: false, description: 'Gender as per PAN card' },
+      { field: 'data.result.panDetails.dob', type: 'string', required: false, description: 'Date of Birth as per PAN card' },
+      { field: 'data.result.panDetails.aadhaarLink', type: 'boolean', required: false, description: 'Aadhaar PAN link status (true/false)' },
+      { field: 'data.clientData', type: 'object', required: true, description: 'Data of the user sharing consent' },
+      { field: 'data.clientData.caseId', type: 'string', required: true, description: 'Unique case id/lead id of the user sharing consent' },
+    ],
+    exampleRequest: {
+      body: JSON.stringify({ mobile: '1111111111', consent: 'Y', clientData: { caseId: '123456' } }, null, 2),
+    },
+    exampleResponse: JSON.stringify({
+      success: true,
+      data: {
+        requestId: 'b5ab0b36-dd17-4b8b-a5a9-982fa3ea92a9',
+        result: {
+          mobileNumber: '1111111111',
+          pan: 'ABCDE1234E',
+          panDetails: {
+            fullName: 'ABC', splitName: ['A', 'B', 'C'],
+            address: { line_1: '', line_2: '', street_name: '', zip: '', city: '', state: '', country: '', full: '' },
+            gender: 'M', dob: '1996-05-10', aadhaarLink: true,
+          },
+        },
+        statusCode: 101,
+        clientData: { caseId: '123456' },
+      },
+    }, null, 2),
+    variants: MOBILE_PREFILL_VARIANTS,
   },
 ]

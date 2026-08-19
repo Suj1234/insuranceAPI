@@ -17,6 +17,66 @@ export const KARZA_AUTH_HEADER = 'x-karza-key'
 /** PAN Profile endpoint path on the vendor. */
 export const KARZA_PAN_PATH = '/v3/pan-profile'
 
+/** PAN Status Check (authentication) endpoint path on the vendor. */
+export const KARZA_PAN_STATUS_PATH = '/v2/pan-authentication'
+
+/** PAN DOB Status (basic profile) endpoint path on the vendor. */
+export const KARZA_PAN_DOB_STATUS_PATH = '/v3/pan-profile-basic'
+
+/** PAN Link Status (unique Aadhaar) — step 1: share consent, get accessKey. */
+export const KARZA_PAN_LINK_UNIQUE_CONSENT_PATH = '/v3/aadhaar-consent'
+
+/** PAN Link Status (unique Aadhaar) — step 2: check PAN-Aadhaar link using accessKey. */
+export const KARZA_PAN_LINK_UNIQUE_CHECK_PATH = '/v3/pan-aadhaar-link'
+
+/** PAN Link Status (any Aadhaar) endpoint path on the vendor. */
+export const KARZA_PAN_LINK_ANY_PATH = '/v3/pan-link'
+
+/** Bank AC Verification Advanced endpoint path on the vendor. */
+export const KARZA_BANK_AC_ADVANCED_PATH = '/v3/bankacc-verification'
+
+/** Silent Bank Account Verification (non-penny) endpoint path on the vendor. */
+export const KARZA_BANK_AC_SILENT_PATH = '/v3/bankacc-verification-non-penny'
+
+/** Driver's License Authentication endpoint path on the vendor. */
+export const KARZA_DL_PATH = '/v3/dl'
+
+/** Passport Verification endpoint path on the vendor. */
+export const KARZA_PASSPORT_PATH = '/v3/passport-verification'
+
+/** Vehicle RC Authentication - Advanced endpoint path on the vendor. */
+export const KARZA_RC_ADVANCED_PATH = '/v3/rc-advanced'
+
+/** GST Authentication endpoint path on the vendor. */
+export const KARZA_GST_PATH = '/gst/prod/v2/gstdetailed'
+
+/** GST Advanced (PAN to all GSTINs + profile + filing history) endpoint path on the vendor. */
+export const KARZA_GST_ADVANCED_PATH = '/gst/prod/v2/gst-advanced'
+
+/** GST Search Basis PAN endpoint path on the vendor. */
+export const KARZA_GST_BY_PAN_PATH = '/gst/prod/v2/search'
+
+/** MCA Signatories endpoint path on the vendor. */
+export const KARZA_MCA_SIGNATORIES_PATH = '/v2/mca-signatories'
+
+/** Udyog Aadhar Number endpoint path on the vendor. */
+export const KARZA_UDYOG_AADHAAR_PATH = '/v2/uam'
+
+/** Employment Verification Advanced (PAN Flow) endpoint path on the vendor. */
+export const KARZA_EMPLOYMENT_ADVANCED_PATH = '/v2/employment-verification-advanced'
+
+/** Digital FootPrint (Mobile) endpoint path on the vendor. */
+export const KARZA_DIGITAL_FOOTPRINT_MOBILE_PATH = '/v3/digitalfootprint/phone'
+
+/** Digital Foot Print (Email) endpoint path on the vendor. */
+export const KARZA_DIGITAL_FOOTPRINT_EMAIL_PATH = '/v3/digitalfootprint/email'
+
+/** Email Fraud Check endpoint path on the vendor. */
+export const KARZA_EMAIL_FRAUD_PATH = '/v3/email-fraud'
+
+/** Mobile to Form Prefill endpoint path on the vendor. */
+export const KARZA_MOBILE_PREFILL_PATH = '/v3/mobile-form-prefill'
+
 /**
  * Fields in the PAN request/response that are PII and must never be logged raw.
  * Used by the redactor before writing api_call_logs.
@@ -24,9 +84,58 @@ export const KARZA_PAN_PATH = '/v3/pan-profile'
 export const PAN_PII_FIELDS = [
   'pan',
   'aadhaarLastFour',
+  'aadhaarNo',
   'dob',
   'name',
   'address',
+  'ipAddress',
+  'accountNumber',
+  'accountHolderName',
+  'ifsc',
+  'bankRRN',
+  'dlNo',
+  'dlNumber',
+  'img',
+  'father/husband',
+  'pin',
+  'completeAddress',
+  'accessKey',
+  'fileNo',
+  'passportNo',
+  'registrationNumber',
+  'chassisNumber',
+  'engineNumber',
+  'fatherName',
+  'ownerName',
+  'permanentAddress',
+  'presentAddress',
+  'rcMobileNo',
+  'gstin',
+  'mobNum',
+  'email',
+  'lgnm',
+  'tradeNam',
+  'emailId',
+  'gstinId',
+  'cin',
+  'DIN/DPIN/PAN',
+  'full_name',
+  'uan',
+  'mobile',
+  'aadhar',
+  'AccountNumber',
+  'OwnerName',
+  'dateOfBirth',
+  'fatherHusbandName',
+  'mobileNumber',
+  'passport',
+  'employeeName',
+  'employerName',
+  'ipAddress',
+  'firstName',
+  'lastName',
+  'fullName',
+  'splitName',
 ] as const
 
 /**

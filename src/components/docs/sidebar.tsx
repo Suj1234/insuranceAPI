@@ -9,7 +9,7 @@ import type { ActiveView } from '@/app/docs/(protected)/environmental/_data/type
 import type { IntroSectionId } from '@/app/docs/(protected)/environmental/_data/introduction'
 
 // Legacy APIs (no explicit `group`): first 4 are Environmental, rest Flood & Hydrology.
-// APIs with an explicit `group` (e.g. Verification (KYC)) are grouped by that field.
+// APIs with an explicit `group` (KYC/Banking/Asset/Employment/Digital subcategories) are grouped by that field.
 const UNGROUPED = API_DEFINITIONS.filter(a => !a.group)
 const ENV_API_IDS = new Set(UNGROUPED.slice(0, 4).map(a => a.id))
 
@@ -59,6 +59,7 @@ function ApiGroup({ label, apis, open, onToggle, isApiActive, setView, searching
                 <button
                   onClick={() => setView({ kind: 'api', apiId: api.id })}
                   aria-current={active ? 'page' : undefined}
+                  title={api.label}
                   className={cn(
                     'w-full flex items-center pl-5 pr-2.5 py-[7px] my-0.5 text-left',
                     'border-l-2 transition-colors duration-150',
@@ -88,7 +89,12 @@ export function Sidebar({ view, setView }: SidebarProps) {
   const [introOpen, setIntroOpen] = useState(false)
   const [envOpen, setEnvOpen] = useState(false)
   const [floodOpen, setFloodOpen] = useState(false)
-  const [verifyOpen, setVerifyOpen] = useState(false)
+  const [kycRetailOpen, setKycRetailOpen] = useState(false)
+  const [kycCommercialOpen, setKycCommercialOpen] = useState(false)
+  const [employmentOpen, setEmploymentOpen] = useState(false)
+  const [assetVehicleOpen, setAssetVehicleOpen] = useState(false)
+  const [bankingOpen, setBankingOpen] = useState(false)
+  const [digitalOpen, setDigitalOpen] = useState(false)
 
   const q = search.trim().toLowerCase()
 
@@ -104,15 +110,28 @@ export function Sidebar({ view, setView }: SidebarProps) {
       )
     : API_DEFINITIONS
 
-  const envApis    = filteredApis.filter(a => !a.group &&  ENV_API_IDS.has(a.id))
-  const floodApis  = filteredApis.filter(a => !a.group && !ENV_API_IDS.has(a.id))
-  const verifyApis = filteredApis.filter(a => a.group === 'Verification (KYC)')
+  const envApis            = filteredApis.filter(a => !a.group &&  ENV_API_IDS.has(a.id))
+  const floodApis          = filteredApis.filter(a => !a.group && !ENV_API_IDS.has(a.id))
+  const kycRetailApis      = filteredApis.filter(a => a.group === 'KYC Authentication - Retail')
+  const kycCommercialApis  = filteredApis.filter(a => a.group === 'KYC Authentication - Commercial')
+  const employmentApis     = filteredApis.filter(a => a.group === 'Employment & Income')
+  const assetVehicleApis   = filteredApis.filter(a => a.group === 'Asset & Vehicle')
+  const bankingApis        = filteredApis.filter(a => a.group === 'Banking & Payments')
+  const digitalApis        = filteredApis.filter(a => a.group === 'Digital Essentials')
 
-  const showIntroGroup  = filteredIntro.length > 0
-  const showEnvGroup    = envApis.length > 0
-  const showFloodGroup  = floodApis.length > 0
-  const showVerifyGroup = verifyApis.length > 0
-  const hasResults      = showIntroGroup || showEnvGroup || showFloodGroup || showVerifyGroup
+  const showIntroGroup         = filteredIntro.length > 0
+  const showEnvGroup           = envApis.length > 0
+  const showFloodGroup         = floodApis.length > 0
+  const showKycRetailGroup     = kycRetailApis.length > 0
+  const showKycCommercialGroup = kycCommercialApis.length > 0
+  const showEmploymentGroup    = employmentApis.length > 0
+  const showAssetVehicleGroup  = assetVehicleApis.length > 0
+  const showBankingGroup       = bankingApis.length > 0
+  const showDigitalGroup       = digitalApis.length > 0
+  const hasResults =
+    showIntroGroup || showEnvGroup || showFloodGroup ||
+    showKycRetailGroup || showKycCommercialGroup || showEmploymentGroup ||
+    showAssetVehicleGroup || showBankingGroup || showDigitalGroup
 
   function isIntroActive(id: string) {
     return view.kind === 'intro' && view.sectionId === id
@@ -232,15 +251,95 @@ export function Sidebar({ view, setView }: SidebarProps) {
           </>
         )}
 
-        {/* ── Verification (KYC) group ── */}
-        {showVerifyGroup && (
+        {/* ── KYC Authentication - Retail group ── */}
+        {showKycRetailGroup && (
           <>
             <div className="mx-3 my-2 border-t border-[--color-border]" />
             <ApiGroup
-              label="Verification (KYC)"
-              apis={verifyApis}
-              open={verifyOpen}
-              onToggle={() => setVerifyOpen(v => !v)}
+              label="KYC Authentication - Retail"
+              apis={kycRetailApis}
+              open={kycRetailOpen}
+              onToggle={() => setKycRetailOpen(v => !v)}
+              isApiActive={isApiActive}
+              setView={setView}
+              searching={!!q}
+            />
+          </>
+        )}
+
+        {/* ── KYC Authentication - Commercial group ── */}
+        {showKycCommercialGroup && (
+          <>
+            <div className="mx-3 my-2 border-t border-[--color-border]" />
+            <ApiGroup
+              label="KYC Authentication - Commercial"
+              apis={kycCommercialApis}
+              open={kycCommercialOpen}
+              onToggle={() => setKycCommercialOpen(v => !v)}
+              isApiActive={isApiActive}
+              setView={setView}
+              searching={!!q}
+            />
+          </>
+        )}
+
+        {/* ── Employment & Income group ── */}
+        {showEmploymentGroup && (
+          <>
+            <div className="mx-3 my-2 border-t border-[--color-border]" />
+            <ApiGroup
+              label="Employment & Income"
+              apis={employmentApis}
+              open={employmentOpen}
+              onToggle={() => setEmploymentOpen(v => !v)}
+              isApiActive={isApiActive}
+              setView={setView}
+              searching={!!q}
+            />
+          </>
+        )}
+
+        {/* ── Asset & Vehicle group ── */}
+        {showAssetVehicleGroup && (
+          <>
+            <div className="mx-3 my-2 border-t border-[--color-border]" />
+            <ApiGroup
+              label="Asset & Vehicle"
+              apis={assetVehicleApis}
+              open={assetVehicleOpen}
+              onToggle={() => setAssetVehicleOpen(v => !v)}
+              isApiActive={isApiActive}
+              setView={setView}
+              searching={!!q}
+            />
+          </>
+        )}
+
+        {/* ── Banking & Payments group ── */}
+        {showBankingGroup && (
+          <>
+            <div className="mx-3 my-2 border-t border-[--color-border]" />
+            <ApiGroup
+              label="Banking & Payments"
+              apis={bankingApis}
+              open={bankingOpen}
+              onToggle={() => setBankingOpen(v => !v)}
+              isApiActive={isApiActive}
+              setView={setView}
+              searching={!!q}
+            />
+          </>
+        )}
+
+        {/* ── Digital Essentials group ── */}
+        {showDigitalGroup && (
+          <>
+            <div className="mx-3 my-2 border-t border-[--color-border]" />
+            <ApiGroup
+              label="Digital Essentials"
+              apis={digitalApis}
+              open={digitalOpen}
+              onToggle={() => setDigitalOpen(v => !v)}
               isApiActive={isApiActive}
               setView={setView}
               searching={!!q}
