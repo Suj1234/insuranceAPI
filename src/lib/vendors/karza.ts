@@ -38,6 +38,9 @@ export const KARZA_BANK_AC_ADVANCED_PATH = '/v3/bankacc-verification'
 /** Silent Bank Account Verification (non-penny) endpoint path on the vendor. */
 export const KARZA_BANK_AC_SILENT_PATH = '/v3/bankacc-verification-non-penny'
 
+/** Driver's License Authentication endpoint path on the vendor. */
+export const KARZA_DL_PATH = '/v3/dl'
+
 /**
  * Fields in the PAN request/response that are PII and must never be logged raw.
  * Used by the redactor before writing api_call_logs.
@@ -54,6 +57,12 @@ export const PAN_PII_FIELDS = [
   'accountHolderName',
   'ifsc',
   'bankRRN',
+  'dlNo',
+  'dlNumber',
+  'img',
+  'father/husband',
+  'pin',
+  'completeAddress',
   'accessKey',
 ] as const
 

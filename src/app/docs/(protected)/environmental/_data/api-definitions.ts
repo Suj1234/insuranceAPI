@@ -7,6 +7,7 @@ import { PAN_LINK_UNIQUE_CHECK_VARIANTS } from './pan-link-unique-check-variants
 import { PAN_LINK_ANY_VARIANTS } from './pan-link-any-variants'
 import { BANK_AC_ADVANCED_VARIANTS } from './bank-ac-advanced-variants'
 import { BANK_AC_SILENT_VARIANTS } from './bank-ac-silent-variants'
+import { DL_VARIANTS } from './dl-variants'
 
 export type ParamIn = 'query' | 'header' | 'path' | 'body'
 export type SchemaType = 'string' | 'number' | 'integer' | 'boolean' | 'array' | 'object' | 'null'
@@ -2327,5 +2328,113 @@ export const API_DEFINITIONS: ApiDefinition[] = [
       },
     }, null, 2),
     variants: BANK_AC_SILENT_VARIANTS,
+  },
+
+  // ── Verification (KYC) — Driver's License Authentication (TKYC) ──────────
+  {
+    id: 'verify-dl',
+    label: "Driver's License Authentication",
+    group: 'Verification (KYC)',
+    method: 'POST',
+    path: '/api/verify/dl',
+    shortDescription: "Authenticate a Driver's License issued by an Indian Road Transport Office",
+    description:
+      "Authenticates a Driver's License issued by the Road Transport Offices of the States of India, returning " +
+      "owner details, vehicle category authorizations, registered address, and license status. Optionally " +
+      "returns endorsement and hazardous-driving validity details. The portal calls the verification provider " +
+      "on your behalf using your credentials; you only send your platform API key.",
+    authNote: 'Pass your API key as the `x-api-key` request header. The vendor key is injected server-side.',
+    params: [
+      { name: 'x-api-key', in: 'header', required: true, type: 'string', description: 'Your platform API key', example: 'env_abc123...' },
+      { name: 'consent', in: 'body', required: true, type: 'string', description: 'Consent is required to make the API request.', example: 'Y', enum: ['Y', 'N'] },
+      { name: 'dlNo', in: 'body', required: true, type: 'string', label: 'DL Number', uppercase: true, placeholder: 'MH0120130001960', description: 'Driving License Number as mentioned on the license including special characters and spaces.', validation: { minLength: 9, maxLength: 50, hint: '9-50 chars' } },
+      { name: 'dob', in: 'body', required: true, type: 'string', label: 'Date of Birth', placeholder: 'DD-MM-YYYY', description: 'Date of Birth as per License in dd-mm-yyyy format', validation: { pattern: '^(0[1-9]|[12][0-9]|3[01])-(0[1-9]|1[012])-(19|20)\\d\\d$', hint: 'DD-MM-YYYY' } },
+      { name: 'additionalDetails', in: 'body', required: false, type: 'boolean', description: 'If this is true, it will return endorsement and hazardous details' },
+      { name: 'clientData', in: 'body', required: false, type: 'object', description: 'Data of the user sharing consent' },
+      { name: 'clientData.caseId', in: 'body', required: false, type: 'string', description: 'Unique case id/lead id of the user sharing consent', validation: { maxLength: 200, hint: 'Max-length 200' } },
+    ],
+    responseFields: [
+      { field: 'data.statusCode', type: 'integer', required: true, description: 'Internal Status Code that denotes the status of the request.' },
+      { field: 'data.requestId', type: 'string', required: true, description: 'Unique id of the API request.' },
+      { field: 'data.result', type: 'object', required: false, description: 'Response object for the given inputs.' },
+      { field: 'data.result.issueDate', type: 'string', required: false, description: 'Date of Issue of the Driving License in dd-mm-yyyy format' },
+      { field: 'data.result.father/husband', type: 'string', required: false, description: 'Name of Relative' },
+      { field: 'data.result.name', type: 'string', required: false, description: 'Owner Name as per Driving License' },
+      { field: 'data.result.img', type: 'string', required: false, description: 'Image of the licence holder' },
+      { field: 'data.result.bloodGroup', type: 'string', required: false, description: 'Blood Group of the owner' },
+      { field: 'data.result.dob', type: 'string', required: false, description: 'Date of Birth of the owner in dd-mm-yyyy format' },
+      { field: 'data.result.dlNumber', type: 'string', required: false, description: 'Driving License Number of the owner' },
+      { field: 'data.result.validity', type: 'object', required: false, description: 'Validity of the license as per purpose of driving — transport or non-transport' },
+      { field: 'data.result.validity.nonTransport', type: 'string', required: false, description: 'Validity of the license for non-transport ("dd-mm-yyyy to dd-mm-yyyy" or "dd-mm-yyyy" or "" or null)' },
+      { field: 'data.result.validity.transport', type: 'string', required: false, description: 'Validity of the license for transport ("dd-mm-yyyy to dd-mm-yyyy" or "dd-mm-yyyy" or "" or null)' },
+      { field: 'data.result.covDetails', type: 'array', required: false, description: 'Category of Vehicles the licensee is authorized to drive along with effective date' },
+      { field: 'data.result.covDetails[].cov', type: 'string', required: false, description: 'Category of vehicle (LMV, HMV, HPMV, etc.)' },
+      { field: 'data.result.covDetails[].issueDate', type: 'string', required: false, description: 'Date of Issue of the license or place where the license has been issued in dd-mm-yyyy format' },
+      { field: 'data.result.address', type: 'array', required: false, description: 'Registered addresses as per Driving License' },
+      { field: 'data.result.address[].addressLine1', type: 'string', required: false, description: 'Address Line 1' },
+      { field: 'data.result.address[].state', type: 'string', required: false, description: 'State' },
+      { field: 'data.result.address[].district', type: 'string', required: false, description: 'District' },
+      { field: 'data.result.address[].pin', type: 'integer', required: false, description: 'Pin Code' },
+      { field: 'data.result.address[].completeAddress', type: 'string', required: false, description: 'Complete Address' },
+      { field: 'data.result.address[].country', type: 'string', required: false, description: 'Country' },
+      { field: 'data.result.address[].type', type: 'string', required: false, description: 'Address Type (Present/Permanent/NA)' },
+      { field: 'data.result.status', type: 'string', required: false, description: 'Status of the Driving License Number as per Government Records' },
+      { field: 'data.result.statusDetails', type: 'object', required: false, description: 'Details of the Driving License Status' },
+      { field: 'data.result.statusDetails.from', type: 'string', required: false, description: 'Driving License valid from date in dd-mm-yyyy format' },
+      { field: 'data.result.statusDetails.to', type: 'string', required: false, description: 'Driving License valid to date in dd-mm-yyyy format' },
+      { field: 'data.result.statusDetails.remarks', type: 'string', required: false, description: 'Remarks for the Status' },
+      { field: 'data.result.endorsementAndHazardousDetails', type: 'object', required: false, description: 'Details of Endorsement and Hazardous Validity' },
+      { field: 'data.result.endorsementAndHazardousDetails.initialIssuingOffice', type: 'string', required: false, description: 'Initial Issuing RTO for given Driving License' },
+      { field: 'data.result.endorsementAndHazardousDetails.lastEndorsementDate', type: 'string', required: false, description: 'Latest endorsement date if any act was imposed on Driving License owner in dd-mm-yyyy format' },
+      { field: 'data.result.endorsementAndHazardousDetails.lastEndorsedOffice', type: 'string', required: false, description: 'Lastest RTO who imposed the endorsement on Driving License owner' },
+      { field: 'data.result.endorsementAndHazardousDetails.endorsementReason', type: 'string', required: false, description: 'Detailed Reason of endorsement' },
+      { field: 'data.result.endorsementAndHazardousDetails.hazardousValidTill', type: 'string', required: false, description: 'Date of validity to drive hazardous vehicle' },
+      { field: 'data.result.endorsementAndHazardousDetails.hillValidTill', type: 'string', required: false, description: 'Date of validity to drive vehicle in hill roads' },
+      { field: 'data.clientData', type: 'object', required: true, description: 'Data of the user sharing consent' },
+      { field: 'data.clientData.caseId', type: 'string', required: true, description: 'Unique case id/lead id of the user sharing consent' },
+    ],
+    exampleRequest: {
+      body: JSON.stringify({ dlNo: 'MH0120130001960', dob: '05-10-1994', additionalDetails: true, consent: 'Y', clientData: { caseId: '123456' } }, null, 2),
+    },
+    exampleResponse: JSON.stringify({
+      success: true,
+      data: {
+        requestId: 'ef484b85-34b9-45cb-99de-119accb91066',
+        result: {
+          issueDate: '08-01-2013',
+          'father/husband': 'DIVAKAR PANDEY',
+          name: 'PUNEET PANDEY',
+          img: '/9j/4AAQSkZJRgABAQAAAQABAAD...',
+          bloodGroup: 'B+',
+          dob: '05-10-1994',
+          dlNumber: 'MH0120130001960',
+          validity: { nonTransport: '08-01-2013 to 07-01-2033', transport: '' },
+          covDetails: [
+            { cov: 'MCWG', issueDate: '08-01-2013' },
+            { cov: 'LMV', issueDate: '08-01-2013' },
+          ],
+          address: [
+            {
+              addressLine1: '', state: 'MAHARASHTRA', district: 'MUMBAI', pin: 400013,
+              completeAddress: 'C/304 PIMPLESHWAR CHS MAHADEV PALAV MARG CURREY RD MUMBAI MUMBAI,MUMBAI,MH 400013',
+              country: '', type: 'NA',
+            },
+          ],
+          status: 'Active',
+          statusDetails: { from: '', to: '', remarks: '' },
+          endorsementAndHazardousDetails: {
+            initialIssuingOffice: 'RTO,MUMBAI CENTRAL',
+            lastEndorsementDate: '02-01-2018',
+            lastEndorsedOffice: 'RTO,MUMBAI CENTRAL',
+            endorsementReason: 'ISSUE OF DUPLICATE DL , ISSUE OF DRIVING LICENCE',
+            hazardousValidTill: 'NA',
+            hillValidTill: 'NA',
+          },
+        },
+        statusCode: 101,
+        clientData: { caseId: '123456' },
+      },
+    }, null, 2),
+    variants: DL_VARIANTS,
   },
 ]
