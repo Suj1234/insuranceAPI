@@ -18,6 +18,7 @@ import { UDYOG_AADHAAR_VARIANTS } from './udyog-aadhaar-variants'
 import { EMPLOYMENT_ADVANCED_VARIANTS, employmentAdvancedResponseFields } from './employment-advanced-variants'
 import { DIGITAL_FOOTPRINT_MOBILE_VARIANTS } from './digital-footprint-mobile-variants'
 import { DIGITAL_FOOTPRINT_EMAIL_VARIANTS } from './digital-footprint-email-variants'
+import { EMAIL_FRAUD_VARIANTS, emailFraudResponseFields } from './email-fraud-variants'
 
 export type ParamIn = 'query' | 'header' | 'path' | 'body'
 export type SchemaType = 'string' | 'number' | 'integer' | 'boolean' | 'array' | 'object' | 'null'
@@ -3210,5 +3211,60 @@ export const API_DEFINITIONS: ApiDefinition[] = [
       },
     }, null, 2),
     variants: DIGITAL_FOOTPRINT_EMAIL_VARIANTS,
+  },
+
+  // ── Verification (KYC) — Email Fraud Check (TKYC) ─────────────────────────
+  {
+    id: 'verify-email-fraud',
+    label: 'Email Fraud Check',
+    group: 'Verification (KYC)',
+    method: 'POST',
+    path: '/api/verify/email-fraud',
+    shortDescription: 'Check fraud and risk associated with an email address, its domain, and an IP address',
+    description:
+      'Checks fraud and risk associated with an email address, its domain, and an optional IP address — email ' +
+      'owner identity, domain validation/age, social media presence, and a composite fraud risk score with band ' +
+      'and advice. When an IP is supplied, also returns IP reputation, geolocation, and proxy/device risk. The ' +
+      'portal calls the verification provider on your behalf using your credentials; you only send your platform ' +
+      'API key.',
+    authNote: 'Pass your API key as the `x-api-key` request header. The vendor key is injected server-side.',
+    params: [
+      { name: 'x-api-key', in: 'header', required: true, type: 'string', description: 'Your platform API key', example: 'env_abc123...' },
+      { name: 'consent', in: 'body', required: true, type: 'string', description: 'Consent is required to make the API request.', example: 'Y', enum: ['Y', 'N'] },
+      { name: 'email', in: 'body', required: false, type: 'string', description: 'Given email id in the format example@example.com' },
+      { name: 'ipAddress', in: 'body', required: false, type: 'string', description: 'IP address of the owner (Supported IP formats - IPv4, IPv6, IPv6 Compressed)' },
+      { name: 'firstName', in: 'body', required: false, type: 'string', description: 'First name of the owner of given email ID' },
+      { name: 'lastName', in: 'body', required: false, type: 'string', description: 'Last name of the owner of given email ID' },
+      { name: 'clientData', in: 'body', required: false, type: 'object', description: 'Data of the user sharing consent' },
+      { name: 'clientData.caseId', in: 'body', required: false, type: 'string', description: 'Unique case id/lead id of the user sharing consent', validation: { maxLength: 200, hint: 'Max-length 200' } },
+    ],
+    responseFields: [
+      { field: 'data.statusCode', type: 'integer', required: true, description: 'Internal Status Code that denotes the status of the request.' },
+      { field: 'data.requestId', type: 'string', required: true, description: 'Unique id of the API request.' },
+      ...emailFraudResponseFields('data.'),
+      { field: 'data.clientData', type: 'object', required: true, description: 'Data of the user sharing consent' },
+      { field: 'data.clientData.caseId', type: 'string', required: true, description: 'Unique case id/lead id of the user sharing consent' },
+    ],
+    exampleRequest: {
+      body: JSON.stringify({ email: 'kailas@dhyeyapurti.org', consent: 'Y', ipAddress: '141.161.19.1', firstName: 'Kailas', lastName: 'dhyey', clientData: { caseId: '123456' } }, null, 2),
+    },
+    exampleResponse: JSON.stringify({
+      success: true,
+      data: {
+        requestId: '0d44f3e8-d1ec-44bb-b48b-ce065bd2eb15',
+        result: [
+          {
+            emailOwnerDetails: { email: 'kailas@dhyeyapurti.org', name: 'Kailas Adhav', company: 'Chairman :- Dhyeyapurti Seva....& Pro. Turiya Infotech, Nashik', title: 'Service Provider', nameMatch: 'P', location: 'Nashik, India' },
+            domainDetails: { domainName: 'dhyeyapurti.org', domainCompany: '', country: 'IN', domainCountryName: 'India', domainCategory: '', domainCorporate: '' },
+            emailAndDomainRiskDetails: { score: '73', fraudRisk: '073 Very Low', advice: 'Lower Fraud Risk', riskBand: 'Fraud Score 1 to 100', domainRiskLevel: 'Moderate' },
+            ipDetails: { ipAddress: '141.161.19.1', ipReputation: 'Good', ipAnonymousDetected: 'No', ipIsp: 'georgetown university' },
+            ipAndDeviceDetails: { ipRiskLevel: 'Moderate', ipRiskReason: 'Moderate By Proxy Reputation And Country Code' },
+          },
+        ],
+        statusCode: 101,
+        clientData: { caseId: '123456' },
+      },
+    }, null, 2),
+    variants: EMAIL_FRAUD_VARIANTS,
   },
 ]

@@ -71,6 +71,9 @@ export const KARZA_DIGITAL_FOOTPRINT_MOBILE_PATH = '/v3/digitalfootprint/phone'
 /** Digital Foot Print (Email) endpoint path on the vendor. */
 export const KARZA_DIGITAL_FOOTPRINT_EMAIL_PATH = '/v3/digitalfootprint/email'
 
+/** Email Fraud Check endpoint path on the vendor. */
+export const KARZA_EMAIL_FRAUD_PATH = '/v3/email-fraud'
+
 /**
  * Fields in the PAN request/response that are PII and must never be logged raw.
  * Used by the redactor before writing api_call_logs.
@@ -125,6 +128,9 @@ export const PAN_PII_FIELDS = [
   'passport',
   'employeeName',
   'employerName',
+  'ipAddress',
+  'firstName',
+  'lastName',
 ] as const
 
 /**
