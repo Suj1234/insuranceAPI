@@ -43,7 +43,7 @@ PDFs will be added over time** — that's expected; step 1 absorbs them.
 | 7 | Driver's License Authentication | verify-dl | DONE ✅ | 2026-08-19 · single scenario; rich response (covDetails[], address[], statusDetails, endorsement) |
 | 8 | Driver's License Authentication Advanced | verify-dl-advanced | BLOCKED | 2026-08-19 · Async API — HTTP response is just "Request Submitted Successfully"; real comparison/OCR result delivered via webhook/email, not the Tryout Send response. Needs webhook receiver + session-correlated live push (real infra, not data+wiring) before this can be built properly — user decided to defer. Revisit once async/webhook API pattern is designed. |
 | 9 | Passport Verification | verify-passport | DONE ✅ | 2026-08-19 · single scenario; all body fields optional per PDF (fileNo+dob OR passportNo+doi+name combos) |
-| 10 | Passport Verification Advanced | verify-passport-advanced | TODO | |
+| 10 | Passport Verification Advanced | verify-passport-advanced | BLOCKED | 2026-08-19 · Same async/kyc-advanced-plus/OCR-image pattern as #8 (DL Advanced) — HTTP response is just an ack, real result via webhook/email. Same blocker: needs webhook receiver + session-correlated live push. Deferred with #8. |
 | 11 | Vehicle RC Authentication - Advanced | verify-rc-advanced | TODO | |
 | 12 | GST Authentication | verify-gst | TODO | |
 | 13 | GST Advanced | verify-gst-advanced | TODO | |
