@@ -13,6 +13,9 @@ import type { IntroSectionId } from '@/app/docs/(protected)/_data/introduction'
 const UNGROUPED = API_DEFINITIONS.filter(a => !a.group)
 const ENV_API_IDS = new Set(UNGROUPED.slice(0, 4).map(a => a.id))
 
+// ponytail: UI-only hide, remove from this set to restore visibility
+const HIDDEN_API_IDS = new Set(['verify-pan-link-unique-consent', 'verify-pan-link-unique-check'])
+
 interface SidebarProps {
   view: ActiveView
   setView: (v: ActiveView) => void
@@ -102,9 +105,10 @@ export function Sidebar({ view, setView }: SidebarProps) {
     ? INTRO_ITEMS.filter(item => item.label.toLowerCase().includes(q))
     : INTRO_ITEMS
 
-  const filteredApis = q
+  const filteredApis = (q
     ? API_DEFINITIONS.filter(api => api.label.toLowerCase().includes(q))
     : API_DEFINITIONS
+  ).filter(api => !HIDDEN_API_IDS.has(api.id))
 
   const envApis            = filteredApis.filter(a => !a.group &&  ENV_API_IDS.has(a.id))
   const floodApis          = filteredApis.filter(a => !a.group && !ENV_API_IDS.has(a.id))

@@ -202,7 +202,7 @@ Default: **minimal.** Permitted: `transition: box-shadow/opacity/color 0.15s` on
 ## Layout (docs shell — BUILT)
 
 - **Navbar** ~52px: ink logo mark + `Insuretech / API Platform` wordmark (no "Documentation" tab), theme toggle, profile. Hairline bottom border.
-- **Left nav** ~260px, `--color-surface`, hairline right border. Group labels 11px uppercase `--color-text-xmuted`. Nav items `rounded-md`, **no per-row borders** (removed — they made the tree look like a table), method badges soft-tinted. Active item: `bg --color-accent-tint` + `text --color-accent`, `rounded-md` (not a hard pill, no left-border rule).
+- **Left nav** ~288px, `--color-surface`, hairline right border. Group labels 11px uppercase `--color-text-xmuted`. Nav items `rounded-md`, **no per-row borders** (removed — they made the tree look like a table), method badges soft-tinted. Active item: `bg --color-accent-tint` + `text --color-accent`, `rounded-md` (not a hard pill, no left-border rule).
 - **Content**: flattened API header on warm paper — serif title (Fraunces 32px), one-line description (`truncate`), single bordered URL chip (method badge + mono URL + copy; NOT wrapped in a bigger card), underline tabs (About / Documentation / Tryout). No eyebrow/category label above the title.
 
 ---

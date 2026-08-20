@@ -28,6 +28,7 @@ const BodySchema = z.object({
   isSalaried:        z.enum(['Y', 'N']).optional(),
   isDirector:        z.enum(['Y', 'N']).optional(),
   isSoleProp:        z.enum(['Y', 'N']).optional(),
+  clientData:        z.object({ caseId: z.string().max(200).optional() }).optional(),
 })
 
 function isValidApiKey(key: string): boolean {

@@ -47,14 +47,26 @@ export const KARZA_PASSPORT_PATH = '/v3/passport-verification'
 /** Vehicle RC Authentication - Advanced endpoint path on the vendor. */
 export const KARZA_RC_ADVANCED_PATH = '/v3/rc-advanced'
 
-/** GST Authentication endpoint path on the vendor. */
-export const KARZA_GST_PATH = '/gst/prod/v2/gstdetailed'
+// The GST family does NOT follow the testapi.karza.in/api.karza.in host-swap
+// every other endpoint uses. Per the vendor's own Postman collection ("GST
+// Authentication collection.json"), GST test traffic goes to api.karza.in
+// (the same host as prod) with the environment baked into the path segment
+// instead ('uat' for test, 'prod' for live). Confirmed live 2026-08-20 with
+// real 200 responses for both gstdetailed and gst-advanced at this host.
+export const KARZA_GST_BASE_URL = 'https://api.karza.in'
+// ponytail: env inferred from KARZA_BASE_URL by string match, not its own var.
+// TODO: switch to an explicit env var (e.g. KARZA_GST_PATH_ENV=uat|prod) once
+// there's a real need to decouple the GST path segment from the base host.
+const KARZA_GST_ENV_SEGMENT = KARZA_BASE_URL.includes('testapi.karza.in') ? 'uat' : 'prod'
 
-/** GST Advanced (PAN to all GSTINs + profile + filing history) endpoint path on the vendor. */
-export const KARZA_GST_ADVANCED_PATH = '/gst/prod/v2/gst-advanced'
+/** GST Authentication endpoint path on the vendor. Use with KARZA_GST_BASE_URL, not KARZA_BASE_URL. */
+export const KARZA_GST_PATH = `/gst/${KARZA_GST_ENV_SEGMENT}/v2/gstdetailed`
 
-/** GST Search Basis PAN endpoint path on the vendor. */
-export const KARZA_GST_BY_PAN_PATH = '/gst/prod/v2/search'
+/** GST Advanced (PAN to all GSTINs + profile + filing history) endpoint path on the vendor. Use with KARZA_GST_BASE_URL. */
+export const KARZA_GST_ADVANCED_PATH = `/gst/${KARZA_GST_ENV_SEGMENT}/v2/gst-advanced`
+
+/** GST Search Basis PAN endpoint path on the vendor. Same /gst/ family as GST Authentication/Advanced — use with KARZA_GST_BASE_URL, not KARZA_BASE_URL. Confirmed live 2026-08-20 (200, real GSTIN data) at api.karza.in/gst/uat/v2/search. */
+export const KARZA_GST_BY_PAN_PATH = `/gst/${KARZA_GST_ENV_SEGMENT}/v2/search`
 
 /** MCA Signatories endpoint path on the vendor. */
 export const KARZA_MCA_SIGNATORIES_PATH = '/v2/mca-signatories'

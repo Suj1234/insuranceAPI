@@ -15,8 +15,8 @@ const VENDOR_TIMEOUT_MS = 30_000
 // the tryout can send MUST be listed here (Zod strips unknowns → dropped).
 const BodySchema = z.object({
   consent:        z.enum(['Y', 'N']).default('Y'),
-  fileNo:         z.string().optional(),
-  dob:            z.string().optional(),
+  fileNo:         z.string().min(1),
+  dob:            z.string().min(1),
   passportNo:     z.string().regex(/^(?!^0+$)[a-zA-Z0-9]{3,20}$/, 'Invalid passport number').optional(),
   doi:            z.string().optional(),
   name:           z.string().optional(),

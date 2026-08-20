@@ -8,8 +8,8 @@ const DEFAULT: ApiVariant = {
   request: {
     params: [
       { name: 'consent', in: 'body', required: true, type: 'string', enum: ['Y', 'N'], description: 'Consent is required to make the API request.' },
-      { name: 'fileNo', in: 'body', required: false, type: 'string', description: 'Passport application File Number as printed on the last page of the passport' },
-      { name: 'dob', in: 'body', required: false, type: 'string', placeholder: 'DD/MM/YYYY', description: 'Date of birth as per Passport' },
+      { name: 'fileNo', in: 'body', required: true, type: 'string', description: 'Passport application File Number as printed on the last page of the passport' },
+      { name: 'dob', in: 'body', required: true, type: 'string', placeholder: 'DD/MM/YYYY', description: 'Date of birth as per Passport' },
       { name: 'passportNo', in: 'body', required: false, type: 'string', uppercase: true, description: 'Passport Number', example: '^(?!^0+$)[a-zA-Z0-9]{3,20}$' },
       { name: 'doi', in: 'body', required: false, type: 'string', placeholder: 'DD/MM/YYYY', description: 'Date of Issue as per Passport' },
       { name: 'name', in: 'body', required: false, type: 'string', description: 'Complete name of the passport holder' },

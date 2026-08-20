@@ -71,15 +71,32 @@ function buildPreviewRows(obj: unknown, depth = 0, prefix = '', out: PreviewRow[
     if (isObject) {
       out.push({ key, label: humanizeKey(k), depth, value: undefined, isParent: true })
       buildPreviewRows(v, depth + 1, key, out)
-    } else {
-      out.push({
-        key, label: humanizeKey(k), depth, isParent: false,
-        value: isArray ? undefined : v,
-        arrayLen: isArray ? (v as unknown[]).length : undefined,
+    } else if (isArray) {
+      const arr = v as unknown[]
+      out.push({ key, label: humanizeKey(k), depth, value: undefined, isParent: true, arrayLen: arr.length })
+      // Drill into each item: objects expand into their fields (indexed),
+      // primitives render as their own leaf row.
+      arr.forEach((item, i) => {
+        if (typeof item === 'object' && item !== null) {
+          const itemKey = `${key}[${i}]`
+          out.push({ key: itemKey, label: `#${i + 1}`, depth: depth + 1, value: undefined, isParent: true })
+          buildPreviewRows(item, depth + 2, itemKey, out)
+        } else {
+          out.push({ key: `${key}[${i}]`, label: `#${i + 1}`, depth: depth + 1, value: item, isParent: false })
+        }
       })
+    } else {
+      out.push({ key, label: humanizeKey(k), depth, value: v, isParent: false })
     }
   }
   return out
+}
+
+// Heuristic: long base64 strings starting with a known image magic-byte
+// signature (JPEG '/9j/', PNG 'iVBORw0KG') render as an <img> instead of raw text.
+const BASE64_IMAGE_RE = /^(\/9j\/|iVBORw0KG)[A-Za-z0-9+/=]+$/
+function isBase64Image(value: unknown): value is string {
+  return typeof value === 'string' && value.length > 100 && BASE64_IMAGE_RE.test(value)
 }
 
 // ── MonthPicker ───────────────────────────────────────────────────────────────
@@ -144,12 +161,47 @@ function StatusBadge({ status, latency }: { status: number; latency: number }) {
 // Drives inline errors from the SAME documented rules shown in the docs
 // "Validations" column (param.validation) — single source of truth. Returns an
 // error string, or null if the value is valid. Empty optional fields pass.
-function validateField(p: { required: boolean; label?: string; name: string; validation?: ParamValidation }, raw: string): string | null {
+// Detects a DD/MM/YYYY-shaped placeholder (either '/' or '-' separator) and
+// auto-inserts the separator as the user types digits, so date fields don't
+// require the user to type the punctuation themselves.
+// Matches DD/MM/YYYY, DD-MM-YYYY, or YYYY-MM-DD shaped placeholders.
+const DATE_PLACEHOLDER_RE = /^(DD|YYYY)([/-])MM\2(DD|YYYY)$/
+function formatDateInput(placeholder: string | undefined, raw: string, prevRaw: string): string {
+  const m = placeholder && DATE_PLACEHOLDER_RE.exec(placeholder)
+  if (!m) return raw
+  const sep = m[2]
+  const b1 = m[1].length          // end of 1st group (2 for DD, 4 for YYYY)
+  const b2 = b1 + 2                // end of MM group
+  const digits = raw.replace(/[^\d]/g, '').slice(0, b2 + m[3].length)
+  const rebuild = (n: number) =>
+    n <= b1 ? digits.slice(0, n)
+    : n <= b2 ? `${digits.slice(0, b1)}${sep}${digits.slice(b1, n)}`
+    : `${digits.slice(0, b1)}${sep}${digits.slice(b1, b2)}${sep}${digits.slice(b2, n)}`
+  // Backspacing the separator itself shouldn't re-insert it.
+  const deleting = raw.length < prevRaw.length
+  if (deleting && raw.endsWith(sep)) return raw
+  return rebuild(digits.length)
+}
+
+function validateField(p: { required: boolean; label?: string; name: string; type?: string; validation?: ParamValidation; requiredMessage?: string }, raw: string): string | null {
   const value = raw.trim()
   const label = p.label ?? p.name
-  if (!value) return p.required ? `${label} is required` : null
+  if (!value) return p.required ? (p.requiredMessage ?? `${label} is required`) : null
   const v = p.validation
   if (!v) return null
+  // Array-typed fields (comma-separated in the input) validate each item,
+  // not the joined string — a fixed-length pattern would always fail past
+  // the first item otherwise.
+  if (p.type === 'array') {
+    const items = value.split(',').map(s => s.trim()).filter(Boolean)
+    if (v.pattern) {
+      const re = new RegExp(v.pattern)
+      if (items.some(item => !re.test(item))) {
+        return v.hint ? `Each value must match ${v.hint}` : 'One or more values have an invalid format'
+      }
+    }
+    return null
+  }
   if (v.minLength != null && value.length < v.minLength) return `${label} must be at least ${v.minLength} characters`
   if (v.maxLength != null && value.length > v.maxLength) return `${label} must be at most ${v.maxLength} characters`
   if (v.pattern && !new RegExp(v.pattern).test(value)) {
@@ -169,7 +221,8 @@ function FieldLabel({ name, label, required, description, noMargin }: {
   description?: string
   noMargin?: boolean
 }) {
-  const pretty = label ?? name.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+  const leaf = name.split('.').pop() ?? name
+  const pretty = label ?? leaf.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
   return (
     <label className={cn(
       'flex items-center gap-2 text-[12.5px] font-medium text-[--color-text-body]',
@@ -354,7 +407,8 @@ export function TryoutTab({ api, apiKey }: TryoutTabProps) {
 
     // Two-option enums (Y/N, Yes/No, true/false) → segmented pill, not a select.
     // NN/g: clearer than a toggle inside a submit-form, shows both labels.
-    if (p.enum && p.enum.length === 2) {
+    // Categorical 2-item enums (e.g. individual/entity) opt out via inputType: 'select'.
+    if (p.enum && p.enum.length === 2 && p.inputType !== 'select') {
       const current = values[p.name] ?? ''
       return (
         <div
@@ -379,7 +433,7 @@ export function TryoutTab({ api, apiKey }: TryoutTabProps) {
                     : 'bg-[--color-surface] text-[--color-text-muted] hover:text-[--color-text-primary]',
                 )}
               >
-                {v === 'Y' ? 'Yes' : v === 'N' ? 'No' : v}
+                {v === 'Y' || v === 'true' ? 'Yes' : v === 'N' || v === 'false' ? 'No' : v}
               </button>
             )
           })}
@@ -396,7 +450,7 @@ export function TryoutTab({ api, apiKey }: TryoutTabProps) {
           aria-required={p.required}
         >
           <option value="">— select —</option>
-          {p.enum.map(v => <option key={v} value={v}>{v}</option>)}
+          {p.enum.map(v => <option key={v} value={v}>{p.enumLabels?.[v] ?? v}</option>)}
         </select>
       )
     }
@@ -407,7 +461,12 @@ export function TryoutTab({ api, apiKey }: TryoutTabProps) {
       <input
         type="text"
         value={values[p.name] ?? ''}
-        onChange={e => setVal(p.name, p.uppercase ? e.target.value.toUpperCase() : e.target.value)}
+        onChange={e => {
+          const prevRaw = values[p.name] ?? ''
+          let next = p.uppercase ? e.target.value.toUpperCase() : e.target.value
+          next = formatDateInput(p.placeholder, next, prevRaw)
+          setVal(p.name, next)
+        }}
         onBlur={() => setTouched(t => ({ ...t, [p.name]: true }))}
         placeholder={placeholder}
         aria-required={p.required}
@@ -446,12 +505,24 @@ export function TryoutTab({ api, apiKey }: TryoutTabProps) {
       const headers: Record<string, string> = { 'x-api-key': apiKey }
       let body: string | undefined
 
-      // Body params (POST/PUT) go in a JSON body.
+      // Body params (POST/PUT) go in a JSON body. Dotted names (e.g.
+      // 'clientData.caseId') must nest into { clientData: { caseId } } —
+      // sent flat, the vendor's Zod schema silently drops the unknown key.
       const activeBodyParams = activeQueryParams.filter(p => p.in === 'body')
       if (activeBodyParams.length > 0) {
-        const payload: Record<string, string> = {}
+        const payload: Record<string, unknown> = {}
         for (const p of activeBodyParams) {
-          if (values[p.name] !== '') payload[p.name] = values[p.name]
+          if (values[p.name] === '') continue
+          const keys = p.name.split('.')
+          let node = payload
+          for (let i = 0; i < keys.length - 1; i++) {
+            node = (node[keys[i]] as Record<string, unknown>) ??= {}
+          }
+          node[keys[keys.length - 1]] =
+            p.type === 'boolean' ? values[p.name] === 'true'
+            : p.type === 'array' ? values[p.name].split(',').map(s => s.trim()).filter(Boolean)
+            : p.type === 'number' || p.type === 'integer' ? Number(values[p.name])
+            : values[p.name]
         }
         body = JSON.stringify(payload)
         headers['Content-Type'] = 'application/json'
@@ -511,7 +582,7 @@ export function TryoutTab({ api, apiKey }: TryoutTabProps) {
               renders label-above-control so the toggles share the inputs' exact
               vertical rhythm; a hairline divides the two zones. */}
           {(() => {
-            const isToggle = (p: typeof activeQueryParams[number]) => !!p.enum && p.enum.length === 2
+            const isToggle = (p: typeof activeQueryParams[number]) => !!p.enum && p.enum.length === 2 && p.inputType !== 'select'
             const inputs  = activeQueryParams.filter(p => !isToggle(p))
             // Toggles, with "consent" forced to the end (it's the required gate).
             const toggles = activeQueryParams.filter(isToggle)
@@ -638,13 +709,15 @@ export function TryoutTab({ api, apiKey }: TryoutTabProps) {
                                     {r.label}
                                   </td>
                                   <td className="px-5 py-2.5 font-mono text-[12.5px] text-[--color-text-primary] whitespace-pre-wrap break-words align-top">
-                                    {r.isParent
-                                      ? <span className="text-[--color-text-xmuted]">{'{ }'}</span>
-                                      : r.arrayLen !== undefined
-                                        ? <span className="text-[--color-text-muted]">[{r.arrayLen} items]</span>
+                                    {r.arrayLen !== undefined
+                                      ? <span className="text-[--color-text-muted]">[{r.arrayLen} items]</span>
+                                      : r.isParent
+                                        ? <span className="text-[--color-text-xmuted]">{'{ }'}</span>
                                         : empty
                                           ? <span className="text-[--color-text-xmuted]">—</span>
-                                          : String(r.value)}
+                                          : isBase64Image(r.value)
+                                            ? <img src={`data:image/jpeg;base64,${r.value}`} alt={r.label} className="max-w-[200px] border border-[--color-border] rounded" />
+                                            : String(r.value)}
                                   </td>
                                 </tr>
                               )

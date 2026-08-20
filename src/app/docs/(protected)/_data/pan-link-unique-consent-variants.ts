@@ -8,9 +8,9 @@ const DEFAULT: ApiVariant = {
   request: {
     params: [
       { name: 'consent', in: 'body', required: true, type: 'string', enum: ['Y', 'N'], description: 'Consent is required to make the API request.' },
-      { name: 'lat', in: 'body', required: false, type: 'string', description: 'Latitude details of the user sharing consent', example: 'Must be valid coordinates' },
-      { name: 'long', in: 'body', required: false, type: 'string', description: 'Longitude details of the user sharing consent', example: 'Must be valid coordinates' },
-      { name: 'ipAddress', in: 'body', required: false, type: 'string', description: 'IP address of the user sharing consent', example: '"A.B.C.D", where the value of A, B, C, and D may range from 0 to 255' },
+      { name: 'lat', in: 'body', required: false, type: 'string', description: 'Latitude details of the user sharing consent. Must be valid coordinates. Either IP or Lat/Long required.', example: 'Must be valid coordinates' },
+      { name: 'long', in: 'body', required: false, type: 'string', description: 'Longitude details of the user sharing consent. Must be valid coordinates. Either IP or Lat/Long required.', example: 'Must be valid coordinates' },
+      { name: 'ipAddress', in: 'body', required: false, type: 'string', description: 'IP address of the user sharing consent. "A.B.C.D", where the value of A, B, C, and D may range from 0 to 255. Either IP or Lat/Long required.', example: '"A.B.C.D", where the value of A, B, C, and D may range from 0 to 255' },
       { name: 'userAgent', in: 'body', required: true, type: 'string', description: 'A string that lets servers and network peers identify the application, operating system, vendor, and/or version of the requesting user agent', example: 'Max-length 256' },
       { name: 'deviceId', in: 'body', required: false, type: 'string', description: 'User Device ID details', example: 'Max-length 200' },
       { name: 'deviceInfo', in: 'body', required: false, type: 'string', description: 'User Device Information', example: 'Max-length 200' },

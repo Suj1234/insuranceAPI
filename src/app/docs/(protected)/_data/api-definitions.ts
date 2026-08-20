@@ -43,9 +43,11 @@ export interface Param {
   type: SchemaType
   description: string
   example?: string | number | boolean
+  requiredMessage?: string  // custom "required" error, overrides the default "{label} is required"
   enum?: string[]
+  enumLabels?: Record<string, string>  // friendly dropdown text per enum value (e.g. 'G' -> 'General'); falls back to the raw value
   validation?: ParamValidation
-  inputType?: 'state-select' | 'district-select' | 'month' | 'pollutant-select'
+  inputType?: 'state-select' | 'district-select' | 'month' | 'pollutant-select' | 'select'
   metaKey?: 'aqiStates' | 'waterStates' | 'hotspotStates'
   cascadesFrom?: string
 }
@@ -1727,10 +1729,20 @@ export const API_DEFINITIONS: ApiDefinition[] = [
         example: 'N',
         enum: ['Y', 'N'],
       },
+      {
+        name: 'clientData.caseId',
+        in: 'body',
+        required: false,
+        type: 'string',
+        description: 'Unique case id/lead id of the user sharing consent',
+        validation: { maxLength: 200, hint: 'Max-length 200' },
+      },
     ],
     responseFields: [
       { field: 'data.requestId',                    type: 'string',        description: 'Unique provider request id (for support/audit)' },
       { field: 'data.statusCode',                   type: 'integer',       description: 'Provider status code (101 = success / record found)' },
+      { field: 'data.clientData',                   type: 'object',        description: 'Data of the user sharing consent' },
+      { field: 'data.clientData.caseId',             type: 'string',        description: 'Unique case id/lead id of the user sharing consent' },
       { field: 'data.result.pan',                   type: 'string',        description: 'The queried PAN' },
       { field: 'data.result.name',                  type: 'string',        description: 'Full name on the PAN record' },
       { field: 'data.result.firstName',             type: 'string',        description: 'First name' },
@@ -1750,12 +1762,13 @@ export const API_DEFINITIONS: ApiDefinition[] = [
       { field: 'data.result.profileMatch',          type: 'array',         description: 'Field-level match results when name/dob/address are supplied for matching; empty when none requested' },
     ],
     exampleRequest: {
-      body: JSON.stringify({ pan: 'ABCDE1234F', consent: 'Y' }, null, 2),
+      body: JSON.stringify({ pan: 'ABCDE1234F', consent: 'Y', clientData: { caseId: '123456' } }, null, 2),
     },
     exampleResponse: JSON.stringify({
       success: true,
       data: {
         requestId: '932ca3b3-67ce-43f7-85fd-75c1ef20fe89',
+        clientData: { caseId: '123456' },
         result: {
           pan: 'ABCDE1234F',
           name: 'FIRSTNAME LASTNAME',
@@ -1831,6 +1844,8 @@ export const API_DEFINITIONS: ApiDefinition[] = [
         in: 'body',
         required: true,
         type: 'string',
+        label: 'Full Name',
+        requiredMessage: 'Please provide full Name',
         description: 'Exact name as per PAN',
       },
       {
@@ -1842,13 +1857,6 @@ export const API_DEFINITIONS: ApiDefinition[] = [
         placeholder: 'DD/MM/YYYY',
         description: 'Date of birth as per PAN',
         validation: { pattern: '^\\d{1,2}/\\d{1,2}/\\d{4}$', hint: 'DD/MM/YYYY' },
-      },
-      {
-        name: 'clientData',
-        in: 'body',
-        required: false,
-        type: 'object',
-        description: 'Data of the user sharing consent',
       },
       {
         name: 'clientData.caseId',
@@ -1934,13 +1942,6 @@ export const API_DEFINITIONS: ApiDefinition[] = [
         validation: { minLength: 10, maxLength: 10, pattern: '^[A-Za-z]{5}\\d{4}[A-Za-z]{1}$', hint: '5 letters, 4 digits, 1 letter' },
       },
       {
-        name: 'clientData',
-        in: 'body',
-        required: false,
-        type: 'object',
-        description: 'Data of the user sharing consent',
-      },
-      {
         name: 'clientData.caseId',
         in: 'body',
         required: false,
@@ -2000,7 +2001,6 @@ export const API_DEFINITIONS: ApiDefinition[] = [
       { name: 'name', in: 'body', required: true, type: 'string', description: 'Name of the user sharing consent' },
       { name: 'consentTime', in: 'body', required: true, type: 'string', description: 'Current Unix/Epoch Timestamp', validation: { hint: 'Must be valid epoch time not before 5 minutes from now' } },
       { name: 'consentText', in: 'body', required: true, type: 'string', description: 'Consent body accepted by the user', validation: { maxLength: 10000, hint: 'Max-length 10000' } },
-      { name: 'clientData', in: 'body', required: true, type: 'object', description: 'Data of the user sharing consent' },
       { name: 'clientData.caseId', in: 'body', required: true, type: 'string', description: 'Unique case id/lead id of the user sharing consent', validation: { maxLength: 200, hint: 'Max-length 200' } },
     ],
     responseFields: [
@@ -2054,7 +2054,6 @@ export const API_DEFINITIONS: ApiDefinition[] = [
       { name: 'pan', in: 'body', required: true, type: 'string', label: 'PAN Number', uppercase: true, placeholder: 'ABCDE1234F', description: 'PAN number of the user', validation: { minLength: 10, maxLength: 10, pattern: '^[A-Za-z]{5}\\d{4}[A-Za-z]{1}$', hint: '5 letters, 4 digits, 1 letter' } },
       { name: 'aadhaarNo', in: 'body', required: true, type: 'string', label: 'Aadhaar Number', placeholder: '123456789012', description: '12 digit Aadhaar Number of the user', validation: { minLength: 12, maxLength: 12, pattern: '^[0-9]{12}$', hint: '12 digits' } },
       { name: 'accessKey', in: 'body', required: true, type: 'string', description: 'Access Key to invoke the next set of API/s (from the Share Consent step)' },
-      { name: 'clientData', in: 'body', required: true, type: 'object', description: 'Data of the user sharing consent (passed as is)' },
       { name: 'clientData.caseId', in: 'body', required: true, type: 'string', description: 'Unique case id/lead id of the user sharing consent', validation: { maxLength: 200, hint: 'Max-length 200' } },
     ],
     responseFields: [
@@ -2102,7 +2101,6 @@ export const API_DEFINITIONS: ApiDefinition[] = [
       { name: 'x-api-key', in: 'header', required: true, type: 'string', description: 'Your platform API key', example: 'env_abc123...' },
       { name: 'consent', in: 'body', required: true, type: 'string', description: 'Consent is required to make the API request.', example: 'Y', enum: ['Y', 'N'] },
       { name: 'pan', in: 'body', required: true, type: 'string', label: 'PAN Number', uppercase: true, placeholder: 'ABCDE1234F', description: 'PAN Number to be verified', validation: { minLength: 10, maxLength: 10, pattern: '^[A-Za-z]{3}[Pp][A-Za-z][0-9]{4}[A-Za-z]$', hint: '5 letters, 4 digits, 1 letter' } },
-      { name: 'clientData', in: 'body', required: false, type: 'object', description: 'Data of the user sharing consent' },
       { name: 'clientData.caseId', in: 'body', required: false, type: 'string', description: 'Unique case id/lead id of the user sharing consent', validation: { maxLength: 200, hint: 'Max-length 200' } },
     ],
     responseFields: [
@@ -2146,15 +2144,14 @@ export const API_DEFINITIONS: ApiDefinition[] = [
       { name: 'x-api-key', in: 'header', required: true, type: 'string', description: 'Your platform API key', example: 'env_abc123...' },
       { name: 'consent', in: 'body', required: true, type: 'string', description: 'Consent is required to make the API request.', example: 'Y', enum: ['Y', 'N'] },
       { name: 'accountNumber', in: 'body', required: true, type: 'string', description: 'Account number to be verified.', validation: { minLength: 5, maxLength: 25, pattern: '^[a-zA-Z0-9]+$', hint: 'alphanumeric, 5-25 chars' } },
+      { name: 'ifsc', in: 'body', required: true, type: 'string', label: 'IFSC Code', uppercase: true, description: 'IFSC code of the home branch of the account.', validation: { pattern: '^[\\w]{4}0[\\w|\\d]{6}$', hint: '4 chars, 0, 6 chars/digits' } },
       { name: 'accountHolderName', in: 'body', required: false, type: 'string', description: 'Name of the account holder whose account is being verified (either accountHolderName or multiNameList to be passed)', validation: { pattern: "^[a-zA-Z0-9&,-/()_'. ]+$", hint: 'letters, numbers, and & , - / ( ) _ \' .' } },
       { name: 'multiNameList', in: 'body', required: false, type: 'array', description: 'Multiple names that needs to be matched with bank name (either accountHolderName or multiNameList to be passed)' },
-      { name: 'ifsc', in: 'body', required: true, type: 'string', label: 'IFSC Code', uppercase: true, description: 'IFSC code of the home branch of the account.', validation: { pattern: '^[\\w]{4}0[\\w|\\d]{6}$', hint: '4 chars, 0, 6 chars/digits' } },
-      { name: 'nameMatchType', in: 'body', required: false, type: 'string', description: 'Whether the account holder is an individual or an entity', enum: ['individual', 'entity'] },
+      { name: 'nameMatchType', in: 'body', required: false, type: 'string', inputType: 'select', description: 'Whether the account holder is an individual or an entity', enum: ['individual', 'entity'] },
       { name: 'useCombinedSolution', in: 'body', required: false, type: 'string', description: 'To be passed when combined solution needs to be used (Nonpenny + pennydrop)', example: 'Y' },
-      { name: 'allowPartialMatch', in: 'body', required: false, type: 'boolean', description: 'To allow partial name match algorithm' },
-      { name: 'preset', in: 'body', required: false, type: 'string', description: 'Strictness level of matching', example: 'G', validation: { hint: 'G (General), L (Lenient), S (Strict); default G' } },
-      { name: 'suppressReorderPenalty', in: 'body', required: false, type: 'boolean', description: 'To suppress reordering of name token' },
-      { name: 'clientData', in: 'body', required: false, type: 'object', description: 'Data of the user sharing consent' },
+      { name: 'allowPartialMatch', in: 'body', required: false, type: 'boolean', description: 'To allow partial name match algorithm', example: 'false', enum: ['true', 'false'] },
+      { name: 'preset', in: 'body', required: false, type: 'string', label: 'Strictness', inputType: 'select', description: 'Strictness level of matching', example: 'G', enum: ['G', 'L', 'S'], enumLabels: { G: 'General', L: 'Lenient', S: 'Strict' }, validation: { hint: 'G (General), L (Lenient), S (Strict); default G' } },
+      { name: 'suppressReorderPenalty', in: 'body', required: false, type: 'boolean', description: 'To suppress reordering of name token', example: 'false', enum: ['true', 'false'] },
       { name: 'clientData.caseId', in: 'body', required: false, type: 'string', description: 'Unique case id/lead id of the user sharing consent', validation: { maxLength: 200, hint: 'Max-length 200' } },
     ],
     responseFields: [
@@ -2266,13 +2263,12 @@ export const API_DEFINITIONS: ApiDefinition[] = [
       { name: 'x-api-key', in: 'header', required: true, type: 'string', description: 'Your platform API key', example: 'env_abc123...' },
       { name: 'consent', in: 'body', required: true, type: 'string', description: 'Consent is required to make the API request.', example: 'Y', enum: ['Y', 'N'] },
       { name: 'accountNumber', in: 'body', required: true, type: 'string', description: 'Account number of the bank account to be verified', validation: { minLength: 5, maxLength: 25, pattern: '^[a-zA-Z0-9]+$', hint: 'alphanumeric, 5-25 chars' } },
-      { name: 'accountHolderName', in: 'body', required: false, type: 'string', description: 'Name of the account holder whose account is being verified', validation: { pattern: "^[a-zA-Z0-9&,-/()_'. ]+$", hint: 'letters, numbers, and & , - / ( ) _ \' .' } },
       { name: 'ifsc', in: 'body', required: true, type: 'string', label: 'IFSC Code', uppercase: true, description: 'IFSC of the bank branch to which the account belongs', validation: { pattern: '^[\\w]{4}0[\\w|\\d]{6}$', hint: '4 chars, 0, 6 chars/digits' } },
-      { name: 'nameMatchType', in: 'body', required: false, type: 'string', description: 'Whether the account holder is an individual or an entity', enum: ['individual', 'entity'] },
-      { name: 'allowPartialMatch', in: 'body', required: false, type: 'boolean', description: 'To allow partial name match algorithm' },
-      { name: 'preset', in: 'body', required: false, type: 'string', description: 'Strictness level of matching', example: 'S', validation: { hint: 'G (General), L (Lenient), S (Strict); default G' } },
-      { name: 'suppressReorderPenalty', in: 'body', required: false, type: 'boolean', description: 'To suppress reordering of name token' },
-      { name: 'clientData', in: 'body', required: false, type: 'object', description: 'Data of the user sharing consent' },
+      { name: 'accountHolderName', in: 'body', required: false, type: 'string', description: 'Name of the account holder whose account is being verified', validation: { pattern: "^[a-zA-Z0-9&,-/()_'. ]+$", hint: 'letters, numbers, and & , - / ( ) _ \' .' } },
+      { name: 'nameMatchType', in: 'body', required: false, type: 'string', inputType: 'select', description: 'Whether the account holder is an individual or an entity', enum: ['individual', 'entity'] },
+      { name: 'allowPartialMatch', in: 'body', required: false, type: 'boolean', description: 'To allow partial name match algorithm', example: 'false', enum: ['true', 'false'] },
+      { name: 'preset', in: 'body', required: false, type: 'string', label: 'Strictness', inputType: 'select', description: 'Strictness level of matching', example: 'S', enum: ['G', 'L', 'S'], enumLabels: { G: 'General', L: 'Lenient', S: 'Strict' }, validation: { hint: 'G (General), L (Lenient), S (Strict); default G' } },
+      { name: 'suppressReorderPenalty', in: 'body', required: false, type: 'boolean', description: 'To suppress reordering of name token', example: 'false', enum: ['true', 'false'] },
       { name: 'clientData.caseId', in: 'body', required: false, type: 'string', description: 'Unique case id/lead id of the user sharing consent', validation: { maxLength: 200, hint: 'Max-length 200' } },
     ],
     responseFields: [
@@ -2369,8 +2365,7 @@ export const API_DEFINITIONS: ApiDefinition[] = [
       { name: 'consent', in: 'body', required: true, type: 'string', description: 'Consent is required to make the API request.', example: 'Y', enum: ['Y', 'N'] },
       { name: 'dlNo', in: 'body', required: true, type: 'string', label: 'DL Number', uppercase: true, placeholder: 'MH0120130001960', description: 'Driving License Number as mentioned on the license including special characters and spaces.', validation: { minLength: 9, maxLength: 50, hint: '9-50 chars' } },
       { name: 'dob', in: 'body', required: true, type: 'string', label: 'Date of Birth', placeholder: 'DD-MM-YYYY', description: 'Date of Birth as per License in dd-mm-yyyy format', validation: { pattern: '^(0[1-9]|[12][0-9]|3[01])-(0[1-9]|1[012])-(19|20)\\d\\d$', hint: 'DD-MM-YYYY' } },
-      { name: 'additionalDetails', in: 'body', required: false, type: 'boolean', description: 'If this is true, it will return endorsement and hazardous details' },
-      { name: 'clientData', in: 'body', required: false, type: 'object', description: 'Data of the user sharing consent' },
+      { name: 'additionalDetails', in: 'body', required: false, type: 'boolean', description: 'If this is true, it will return endorsement and hazardous details', example: 'false', enum: ['true', 'false'] },
       { name: 'clientData.caseId', in: 'body', required: false, type: 'string', description: 'Unique case id/lead id of the user sharing consent', validation: { maxLength: 200, hint: 'Max-length 200' } },
     ],
     responseFields: [
@@ -2475,13 +2470,12 @@ export const API_DEFINITIONS: ApiDefinition[] = [
     params: [
       { name: 'x-api-key', in: 'header', required: true, type: 'string', description: 'Your platform API key', example: 'env_abc123...' },
       { name: 'consent', in: 'body', required: true, type: 'string', description: 'Consent is required to make the API request.', example: 'Y', enum: ['Y', 'N'] },
-      { name: 'fileNo', in: 'body', required: false, type: 'string', description: 'Passport application File Number as printed on the last page of the passport' },
-      { name: 'dob', in: 'body', required: false, type: 'string', label: 'Date of Birth', placeholder: 'DD/MM/YYYY', description: 'Date of birth as per Passport' },
+      { name: 'fileNo', in: 'body', required: true, type: 'string', description: 'Passport application File Number as printed on the last page of the passport' },
+      { name: 'dob', in: 'body', required: true, type: 'string', label: 'Date of Birth', placeholder: 'DD/MM/YYYY', description: 'Date of birth as per Passport' },
       { name: 'passportNo', in: 'body', required: false, type: 'string', label: 'Passport Number', uppercase: true, description: 'Passport Number', validation: { pattern: '^(?!^0+$)[a-zA-Z0-9]{3,20}$', hint: '3-20 alphanumeric chars' } },
       { name: 'doi', in: 'body', required: false, type: 'string', label: 'Date of Issue', placeholder: 'DD/MM/YYYY', description: 'Date of Issue as per Passport' },
       { name: 'name', in: 'body', required: false, type: 'string', description: 'Complete name of the passport holder' },
       { name: 'passportStatus', in: 'body', required: false, type: 'string', description: 'If status of passport required', example: 'Y', enum: ['Y', 'N'] },
-      { name: 'clientData', in: 'body', required: false, type: 'object', description: 'Data of the user sharing consent' },
       { name: 'clientData.caseId', in: 'body', required: false, type: 'string', description: 'Unique case id/lead id of the user sharing consent', validation: { maxLength: 200, hint: 'Max-length 200' } },
     ],
     responseFields: [
@@ -2550,7 +2544,6 @@ export const API_DEFINITIONS: ApiDefinition[] = [
       { name: 'registrationNumber', in: 'body', required: true, type: 'string', label: 'Registration Number', uppercase: true, placeholder: 'MH04CY4545', description: 'Vehicle Registration Number', validation: { minLength: 6, maxLength: 20, hint: '6-20 chars, e.g. MH04CY4545' } },
       { name: 'version', in: 'body', required: true, type: 'number', description: 'API version', example: 3.1, validation: { hint: 'Value must be greater than 3' } },
       { name: 'partialEngine', in: 'body', required: false, type: 'string', description: 'If Partial engine is required', example: 'Y', enum: ['Y', 'N'] },
-      { name: 'clientData', in: 'body', required: false, type: 'object', description: 'Data of the user sharing consent' },
       { name: 'clientData.caseId', in: 'body', required: false, type: 'string', description: 'Unique case id/lead id of the user sharing consent', validation: { maxLength: 200, hint: 'Max-length 200' } },
     ],
     responseFields: [
@@ -2664,9 +2657,8 @@ export const API_DEFINITIONS: ApiDefinition[] = [
     params: [
       { name: 'x-api-key', in: 'header', required: true, type: 'string', description: 'Your platform API key', example: 'env_abc123...' },
       { name: 'consent', in: 'body', required: true, type: 'string', description: 'Consent is required to make the API request.', example: 'Y', enum: ['Y', 'N'] },
-      { name: 'additionalData', in: 'body', required: false, type: 'boolean', description: 'Optional Parameter: To fetch HSN Summary of the entity and certain additional data-points' },
+      { name: 'additionalData', in: 'body', required: false, type: 'boolean', description: 'Optional Parameter: To fetch HSN Summary of the entity and certain additional data-points', example: 'false', enum: ['true', 'false'] },
       { name: 'gstin', in: 'body', required: true, type: 'string', label: 'GSTIN', uppercase: true, placeholder: '27AAACR5055K1Z7', description: 'Fifteen character unique GSTIN to be authenticated', validation: { minLength: 15, maxLength: 15, hint: '15 chars' } },
-      { name: 'clientData', in: 'body', required: false, type: 'object', description: 'Data of the user sharing consent' },
       { name: 'clientData.caseId', in: 'body', required: false, type: 'string', description: 'Unique case id/lead id of the user sharing consent', validation: { maxLength: 200, hint: 'Max-length 200' } },
     ],
     responseFields: [
@@ -2760,9 +2752,8 @@ export const API_DEFINITIONS: ApiDefinition[] = [
       { name: 'x-api-key', in: 'header', required: true, type: 'string', description: 'Your platform API key', example: 'env_abc123...' },
       { name: 'consent', in: 'body', required: true, type: 'string', description: 'Consent is required to make the API request', example: 'Y', enum: ['Y', 'N'] },
       { name: 'pan', in: 'body', required: true, type: 'string', label: 'PAN Number', uppercase: true, placeholder: 'AAECP3450G', description: 'PAN to be authenticated', validation: { pattern: '^[A-Za-z]{5}\\d{4}[A-Za-z]{1}$', hint: '5 letters, 4 digits, 1 letter' } },
-      { name: 'liabilityDetails', in: 'body', required: false, type: 'boolean', description: 'Optional parameter to fetch percentage liabilities paid via GSTR-3B' },
+      { name: 'liabilityDetails', in: 'body', required: false, type: 'boolean', description: 'Optional parameter to fetch percentage liabilities paid via GSTR-3B', example: 'false', enum: ['true', 'false'] },
       { name: 'stateCode', in: 'body', required: false, type: 'array', description: "List of State Codes for which GSTIN's have to be fetched", validation: { pattern: '^\\d{2}$', hint: '2-digit codes, e.g. 29, 19' } },
-      { name: 'clientData', in: 'body', required: false, type: 'object', description: 'Data of the user sharing consent' },
       { name: 'clientData.caseId', in: 'body', required: false, type: 'string', description: 'Unique case id/lead id of the user sharing consent', validation: { maxLength: 200, hint: 'Max-length 200' } },
     ],
     responseFields: [
@@ -2824,7 +2815,6 @@ export const API_DEFINITIONS: ApiDefinition[] = [
       { name: 'x-api-key', in: 'header', required: true, type: 'string', description: 'Your platform API key', example: 'env_abc123...' },
       { name: 'consent', in: 'body', required: true, type: 'string', description: 'Consent is required to make the API request.', example: 'Y', enum: ['Y', 'N'] },
       { name: 'pan', in: 'body', required: true, type: 'string', label: 'PAN Number', uppercase: true, placeholder: 'AAACR5055K', description: 'PAN to be authenticated', validation: { pattern: '^[A-Za-z]{5}\\d{4}[A-Za-z]{1}$', hint: '5 letters, 4 digits, 1 letter' } },
-      { name: 'clientData', in: 'body', required: false, type: 'object', description: 'Data of the user sharing consent' },
       { name: 'clientData.caseId', in: 'body', required: false, type: 'string', description: 'Unique case id/lead id of the user sharing consent', validation: { maxLength: 200, hint: 'Max-length 200' } },
     ],
     responseFields: [
@@ -2880,7 +2870,6 @@ export const API_DEFINITIONS: ApiDefinition[] = [
       { name: 'x-api-key', in: 'header', required: true, type: 'string', description: 'Your platform API key', example: 'env_abc123...' },
       { name: 'consent', in: 'body', required: true, type: 'string', description: 'Consent is required to make the API request.', example: 'Y', enum: ['Y', 'N'] },
       { name: 'cin', in: 'body', required: true, type: 'string', label: 'CIN / LLPIN', uppercase: true, placeholder: 'AAA-1234', description: '15 character Company Identification Number or 8 character LLPIN issued by the Ministry of Corporate Affairs (MCA)', validation: { minLength: 21, maxLength: 21, hint: '21 chars' } },
-      { name: 'clientData', in: 'body', required: false, type: 'object', description: 'Data of the user sharing consent' },
       { name: 'clientData.caseId', in: 'body', required: false, type: 'string', description: 'Unique case id/lead id of the user sharing consent', validation: { maxLength: 200, hint: 'Max-length 200' } },
     ],
     responseFields: [
@@ -2937,7 +2926,6 @@ export const API_DEFINITIONS: ApiDefinition[] = [
       { name: 'consent', in: 'body', required: true, type: 'string', description: 'Consent is required to make the API request.', example: 'Y', enum: ['Y', 'N'] },
       { name: 'uan', in: 'body', required: true, type: 'string', label: 'Udyog Aadhaar Number', uppercase: true, placeholder: 'GJ20A0007692', description: '12 character Udyog Aadhaar Number to be authenticated', validation: { minLength: 12, maxLength: 12, pattern: '^[A-Z]{2}\\d{2}[A-Z]{1}\\d{7}$', hint: '2 letters, 2 digits, 1 letter, 7 digits' } },
       { name: 'mobile', in: 'body', required: false, type: 'string', placeholder: '9876543210', description: 'Mobile Number registered against the UAN', validation: { pattern: '^[6-9]{1}[0-9]{9}$', hint: '10 digits, starts with 6-9' } },
-      { name: 'clientData', in: 'body', required: false, type: 'object', description: 'Data of the user sharing consent' },
       { name: 'clientData.caseId', in: 'body', required: false, type: 'string', description: 'Unique case id/lead id of the user sharing consent', validation: { maxLength: 200, hint: 'Max-length 200' } },
     ],
     responseFields: [
@@ -3010,20 +2998,19 @@ export const API_DEFINITIONS: ApiDefinition[] = [
     authNote: 'Pass your API key as the `x-api-key` request header. The vendor key is injected server-side.',
     params: [
       { name: 'x-api-key', in: 'header', required: true, type: 'string', description: 'Your platform API key', example: 'env_abc123...' },
-      { name: 'consent', in: 'body', required: true, type: 'string', description: 'Consent is required to make the API request.', example: 'Y', enum: ['Y', 'N'] },
-      { name: 'uans', in: 'body', required: false, type: 'array', description: 'UAN(s) allotted to the individual by EPFO', validation: { pattern: '^[0-9]{12}$', hint: '12 digits per item' } },
+      { name: 'pan', in: 'body', required: true, type: 'string', label: 'PAN Number', uppercase: true, placeholder: 'DFKAB1295K', description: 'PAN number of the individual', validation: { minLength: 10, maxLength: 10, pattern: '^[A-Za-z]{5}\\d{4}[A-Za-z]{1}$', hint: '5 letters, 4 digits, 1 letter' } },
+      { name: 'uans', in: 'body', required: false, type: 'array', placeholder: 'Enter comma separated UAN.', description: 'UAN(s) allotted to the individual by EPFO', validation: { pattern: '^[0-9]{12}$', hint: '12 digits per item' } },
       { name: 'entityId', in: 'body', required: false, type: 'string', description: 'Entity ID/CIN of the Company' },
       { name: 'employerName', in: 'body', required: false, type: 'string', description: 'Employer Name', validation: { minLength: 3, maxLength: 255, hint: '3-255 chars' } },
       { name: 'employeeName', in: 'body', required: false, type: 'string', description: 'Employee Name', validation: { minLength: 3, maxLength: 50, hint: '3-50 chars' } },
       { name: 'mobile', in: 'body', required: false, type: 'string', description: 'Mobile Number of the Individual', validation: { pattern: '^[6-9]\\d{9}$', hint: '10 digits, starts with 6-9' } },
       { name: 'emailId', in: 'body', required: false, type: 'string', description: 'Work Email of the Individual' },
-      { name: 'runPanFlow', in: 'body', required: true, type: 'boolean', description: 'Trigger PAN Flow' },
-      { name: 'pan', in: 'body', required: true, type: 'string', label: 'PAN Number', uppercase: true, placeholder: 'DFKAB1295K', description: 'PAN number of the individual', validation: { minLength: 10, maxLength: 10, pattern: '^[A-Za-z]{5}\\d{4}[A-Za-z]{1}$', hint: '5 letters, 4 digits, 1 letter' } },
-      { name: 'showFailures', in: 'body', required: false, type: 'boolean', description: 'Shows details regarding the failures' },
-      { name: 'isLatestEmployer', in: 'body', required: false, type: 'boolean', description: 'To trigger the latest employer flow' },
-      { name: 'pdf', in: 'body', required: false, type: 'boolean', description: 'If this is true then get the pdf link in the response' },
-      { name: 'clientData', in: 'body', required: false, type: 'object', description: 'Data of the user sharing consent' },
       { name: 'clientData.caseId', in: 'body', required: false, type: 'string', description: 'Unique case id/lead id of the user sharing consent', validation: { maxLength: 200, hint: 'Max-length 200' } },
+      { name: 'showFailures', in: 'body', required: false, type: 'boolean', description: 'Shows details regarding the failures', example: 'false', enum: ['true', 'false'] },
+      { name: 'isLatestEmployer', in: 'body', required: false, type: 'boolean', description: 'To trigger the latest employer flow', example: 'false', enum: ['true', 'false'] },
+      { name: 'pdf', in: 'body', required: false, type: 'boolean', description: 'If this is true then get the pdf link in the response', example: 'false', enum: ['true', 'false'] },
+      { name: 'runPanFlow', in: 'body', required: true, type: 'boolean', description: 'Trigger PAN Flow', enum: ['true', 'false'] },
+      { name: 'consent', in: 'body', required: true, type: 'string', description: 'Consent is required to make the API request.', example: 'Y', enum: ['Y', 'N'] },
     ],
     responseFields: [
       { field: 'data.status-code', type: 'string', required: true, description: 'Internal Status Code that denotes the status of the request.' },
@@ -3082,7 +3069,6 @@ export const API_DEFINITIONS: ApiDefinition[] = [
       { name: 'statutoryPresenceRequired', in: 'body', required: false, type: 'string', description: 'If Mobile to statutory presence related details are required', example: 'Y', enum: ['Y', 'N'] },
       { name: 'financialPresenceRequired', in: 'body', required: false, type: 'string', description: 'If Mobile to financial Presence related details are required', example: 'Y', enum: ['Y', 'N'] },
       { name: 'rcLinkageRequired', in: 'body', required: false, type: 'string', description: 'If Mobile to RC Linkage related details are required', example: 'Y', enum: ['Y', 'N'] },
-      { name: 'clientData', in: 'body', required: false, type: 'object', description: 'Data of the user sharing consent' },
       { name: 'clientData.caseId', in: 'body', required: false, type: 'string', description: 'Unique case id/lead id of the user sharing consent', validation: { maxLength: 200, hint: 'Max-length 200' } },
     ],
     responseFields: [
@@ -3168,7 +3154,6 @@ export const API_DEFINITIONS: ApiDefinition[] = [
       { name: 'x-api-key', in: 'header', required: true, type: 'string', description: 'Your platform API key', example: 'env_abc123...' },
       { name: 'consent', in: 'body', required: true, type: 'string', description: 'Consent is required to make the API request.', example: 'Y', enum: ['Y', 'N'] },
       { name: 'email', in: 'body', required: true, type: 'string', description: 'Email Id' },
-      { name: 'clientData', in: 'body', required: false, type: 'object', description: 'Data of the user sharing consent' },
       { name: 'clientData.caseId', in: 'body', required: false, type: 'string', description: 'Unique case id/lead id of the user sharing consent', validation: { maxLength: 200, hint: 'Max-length 200' } },
     ],
     responseFields: [
@@ -3244,7 +3229,6 @@ export const API_DEFINITIONS: ApiDefinition[] = [
       { name: 'ipAddress', in: 'body', required: false, type: 'string', description: 'IP address of the owner (Supported IP formats - IPv4, IPv6, IPv6 Compressed)' },
       { name: 'firstName', in: 'body', required: false, type: 'string', description: 'First name of the owner of given email ID' },
       { name: 'lastName', in: 'body', required: false, type: 'string', description: 'Last name of the owner of given email ID' },
-      { name: 'clientData', in: 'body', required: false, type: 'object', description: 'Data of the user sharing consent' },
       { name: 'clientData.caseId', in: 'body', required: false, type: 'string', description: 'Unique case id/lead id of the user sharing consent', validation: { maxLength: 200, hint: 'Max-length 200' } },
     ],
     responseFields: [
@@ -3294,7 +3278,6 @@ export const API_DEFINITIONS: ApiDefinition[] = [
       { name: 'x-api-key', in: 'header', required: true, type: 'string', description: 'Your platform API key', example: 'env_abc123...' },
       { name: 'consent', in: 'body', required: true, type: 'string', description: 'Consent is required to make the API request.', example: 'Y', enum: ['Y', 'N'] },
       { name: 'mobile', in: 'body', required: true, type: 'string', label: 'Mobile Number', placeholder: '9876543210', description: '10 Digit mobile number', validation: { hint: '10 digits' } },
-      { name: 'clientData', in: 'body', required: false, type: 'object', description: 'Data of the user sharing consent' },
       { name: 'clientData.caseId', in: 'body', required: false, type: 'string', description: 'Unique case id/lead id of the user sharing consent', validation: { maxLength: 200, hint: 'Max-length 200' } },
     ],
     responseFields: [

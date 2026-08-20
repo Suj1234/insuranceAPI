@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import {
-  KARZA_BASE_URL,
+  KARZA_GST_BASE_URL,
   KARZA_AUTH_HEADER,
   KARZA_GST_ADVANCED_PATH,
   redactPii,
@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
 
     let vendorRes: Response
     try {
-      vendorRes = await fetch(`${KARZA_BASE_URL}${KARZA_GST_ADVANCED_PATH}`, {
+      vendorRes = await fetch(`${KARZA_GST_BASE_URL}${KARZA_GST_ADVANCED_PATH}`, {
         method: 'POST',
         headers: {
           'Content-Type':     'application/json',
